@@ -1,234 +1,89 @@
-<p align="center">
-  <img src="assets/logo/web3js.jpg" width="200" alt="web3.js" />
-</p>
+# Guide to Oasis Web3's tests and CI
 
-# web3.js - Ethereum JavaScript API
+Web3 is used in Node.js and browser contexts to interact with a wide variety of clients. Its tests
+try to cover as much of this domain as possible.
 
-[![Discord][discord-image]][discord-url] [![StackExchange][stackexchange-image]][stackexchange-url] [![NPM Package Version][npm-image-version]][npm-url] [![NPM Package Downloads][npm-image-downloads]][npm-url] [![Build Status][actions-image]][actions-url] [![Dev Dependency Status][deps-dev-image]][deps-dev-url] [![Coverage Status][coveralls-image]][coveralls-url] [![Lerna][lerna-image]][lerna-url] [![Netlify Status][netlify-image]][netlify-url]
+If you're looking for a fixture, test pattern or common execution context to validate a change, you should be able find it in the existing test suite. (Caveats include Parity / Quorum clients and MetaMask specific tests.)
 
-This is the Ethereum [JavaScript API][docs]
-which connects to the [Generic JSON-RPC](https://github.com/ethereum/wiki/wiki/JSON-RPC) spec.
+## Required Tests
 
-You need to run a local or remote [Ethereum](https://www.ethereum.org/) node to use this library.
+These should pass for PRs to merge:
 
-Please read the [documentation][docs] for more.
+| Test type | npm command | Example | Description | CI Only |
+| --------- | --------------- | ------ | ----------- | ----- |
+| unit | test | [eth.accounts.sign.js][1] | For discrete pieces of logic |
+| integration | test:e2e:clients | [e2e.contract.events.js][2] | Tests using geth and ganache-cli, (insta-mining and interval mining.) Easy to write and good for modeling complex use-cases |
+| browser | test:e2e:browsers | | The integration tests run in a headless browser using web3.min.js (browserified, vs. ganache-cli) |
+| typescript | dtslint | -- | TS type definitions tests |
+| dependencies  | depcheck | -- | Verifies every dependency is listed correctly in the module package |
+| bundle | test:e2e:min | [e2e.minified.js][3] | Verifies minified bundle loads in a headless browser *without* being webpacked / browserified | :white_check_mark: |
+| cdn | test:e2e:cdn | [e2e.cdn.sh][4]| Visual inspection check: publishes an (un-webpacked) site that uses web3.min.js at https://web3-staging.netlify.app/ | :white_check_mark: |
+| windows | -- | [e2e.windows.sh][5] | Verifies Web3 installs on Windows OS / Node 12 and can connect to Infura over wss and https | :white_check_mark: |
 
-## Installation
 
-### Node
+## Optional Tests
 
-```bash
-npm install web3
-```
+CI also has tests that install Web3's state at an arbitrary commit in an external real-world project and run *their* unit tests with it. This strategy is borrowed from ethereum/solidity which checks latest Solidity against OpenZeppelin and others to keep abreast of how local changes might affect critical projects downstream from them.
 
-### Yarn
+Examples include:
++ [e2e.mosaic.sh][8]: ~300 unit tests for [a Solidity project built with Buidler & @truffle/contract][9]
++ [e2e.ganache.core.sh][9]: ~600 unit tests for [a widely used JS testrpc][11]
 
-```bash
-yarn add web3
-```
+These tests are "allowed failures". They're:
++ a pre-publication sanity check that discovers how Web3 performs in the wild
++ useful for catching problems which are difficult to anticipate
++ exposed to failure for reasons outside of Web3's control, ex: when fixes here surface bugs in the target.
 
-### In the Browser
+## Implementation Details
 
-Use the prebuilt `dist/web3.min.js`, or
-build using the [web3.js][repo] repository:
+**Code coverage**
 
-```bash
-npm run build
-```
+Coverage is measured by aggregating the results of tests run in the `unit_and_e2e_clients`
+CI job.
 
-Then include `dist/web3.min.js` in your html file.
-This will expose `Web3` on the window object.
+**Tests which use an Ethereum client**
 
-Or via jsDelivr CDN:
+The npm script `test:e2e:clients` greps all tests with an `[ @E2E ]` tag
+in their mocha test description and runs them against:
++ ganache-cli
++ geth stable (POA, single instance, instamining)
++ geth stable (POA, single instance, mining at 2s intervals)
 
-```html
-<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-```
+These tests are grouped in files prefixed by "e2e", ex: `test/e2e.method.call.js`.
 
-UNPKG:
+Additionally, there are conventional unit tests postfixed `.ganache.js` which spin up a ganache
+server programatically within mocha. This pattern is useful if you want to
+control client configuration for a specific case, test against multiple independent providers, etc.
 
-```html
-<script src="https://unpkg.com/web3@latest/dist/web3.min.js"></script>
-```
+**"Real world" tests**
 
-## Usage
+The tests which install Web3's current state in an external real-world project and
+run their unit tests accomplish this by publishing the monorepo to an ephemeral private
+npm registry which is spun up in CI using [verdaccio][14]. (Implementation details can
+be seen in [scripts/e2e.npm.publish.sh][15])
 
-```js
-// In Node.js
-const Web3 = require('web3');
+The real world target is then cloned and npm or yarn are used to replace its existing
+Web3 version with the version published to the the private registry. A simple example can be seen at
+[scripts/e2e.ganache.core.sh][10].
 
-let web3 = new Web3('ws://localhost:8546');
-console.log(web3);
-> {
-    eth: ... ,
-    shh: ... ,
-    utils: ...,
-    ...
-}
-```
+In practice, complex projects can have many versions of Web3 nested in their dependency tree.
+It's important to coerce all of them to the virtually published package's version for the test to be valid.
+This can be done with [scripts/js/resolutions.js][18] which modifies the target's
+`package.json` to take advantage of Yarn's [selective dependency resolutions][17].
+An example of its use can be seen at [scripts/e2e.mosaic.sh][8].
 
-Additionally you can set a provider using `web3.setProvider()` (e.g. WebsocketProvider):
+[14]: https://verdaccio.org/docs/en/installation
+[15]: https://github.com/ethereum/web3.js/blob/1.x/scripts/e2e.npm.publish.sh
+[17]: https://classic.yarnpkg.com/en/docs/selective-version-resolutions/
+[18]: https://github.com/ethereum/web3.js/blob/1.x/scripts/js/resolutions.js
 
-```js
-web3.setProvider('ws://localhost:8546');
-// or
-web3.setProvider(new Web3.providers.WebsocketProvider('ws://localhost:8546'));
-```
+[8]: https://github.com/ethereum/web3.js/blob/1.x/scripts/e2e.mosaic.sh
+[9]: https://github.com/cgewecke/mosaic-1
+[10]: https://github.com/ethereum/web3.js/blob/1.x/scripts/e2e.ganache.core.sh
+[11]: https://github.com/trufflesuite/ganache-core
 
-There you go, now you can use it:
-
-```js
-web3.eth.getAccounts().then(console.log);
-```
-
-### Usage with TypeScript
-
-We support types within the repo itself. Please open an issue here if you find any wrong types.
-
-You can use `web3.js` as follows:
-
-```typescript
-import Web3 from 'web3';
-const web3 = new Web3('ws://localhost:8546');
-```
-
-If you are using the types in a `commonjs` module, like in a Node app, you just have to enable `esModuleInterop` and `allowSyntheticDefaultImports` in your `tsconfig` for typesystem compatibility:
-
-```js
-"compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    ....
-```
-
-## Trouble shooting and known issues.
-
-### Web3 and Angular
-
-### New solution
-
-If you are using Angular version >11 and run into an issue building, the old solution below will not work. This is because polyfills are not included in the newest version of Angular.
-
-- Install the required dependencies within your angular project:
-
-```bash
-npm install --save-dev crypto-browserify stream-browserify assert stream-http https-browserify os-browserify
-```
-
-- Within `tsconfig.json` add the following `paths` in `compilerOptions` so Webpack can get the correct dependencies
-
-```typescript
-{
-    "compilerOptions": {
-        "paths" : {
-        "crypto": ["./node_modules/crypto-browserify"],
-        "stream": ["./node_modules/stream-browserify"],
-        "assert": ["./node_modules/assert"],
-        "http": ["./node_modules/stream-http"],
-        "https": ["./node_modules/https-browserify"],
-        "os": ["./node_modules/os-browserify"],
-    }
-}
-```
-
-- Add the following lines to `polyfills.ts` file:
-
-```typescript
-import { Buffer } from 'buffer';
-
-(window as any).global = window;
-global.Buffer = Buffer;
-global.process = {
-    env: { DEBUG: undefined },
-    version: '',
-    nextTick: require('next-tick')
-} as any;
-```
-
-### Old solution
-
-If you are using Ionic/Angular at a version >5 you may run into a build error in which modules `crypto` and `stream` are `undefined`
-
-a work around for this is to go into your node-modules and at `/angular-cli-files/models/webpack-configs/browser.js` change  the `node: false` to `node: {crypto: true, stream: true}` as mentioned [here](https://github.com/ethereum/web3.js/issues/2260#issuecomment-458519127)
-
-Another variation of this problem was an [issue opned on angular-cli](https://github.com/angular/angular-cli/issues/1548)
-
-## Documentation
-
-Documentation can be found at [ReadTheDocs][docs].
-
-## Building
-
-### Requirements
-
--   [Node.js](https://nodejs.org)
--   [npm](https://www.npmjs.com/)
-
-```bash
-sudo apt-get update
-sudo apt-get install nodejs
-sudo apt-get install npm
-```
-
-### Building (webpack)
-
-Build the web3.js package:
-
-```bash
-npm run build
-```
-
-### Testing (mocha)
-
-```bash
-npm test
-```
-
-### Contributing
-
-Please follow the [Contribution Guidelines](./CONTRIBUTIONS.md) and [Review Guidelines](./REVIEW.md).
-
-This project adheres to the [Release Guidelines](./REVIEW.md).
-
-### Community
-
--   [Discord][discord-url]
--   [StackExchange][stackexchange-url]
-
-### Similar libraries in other languages
-
--   Haskell: [hs-web3](https://github.com/airalab/hs-web3)
--   Java: [web3j](https://github.com/web3j/web3j)
--   PHP: [web3.php](https://github.com/sc0Vu/web3.php)
--   Purescript: [purescript-web3](https://github.com/f-o-a-m/purescript-web3)
--   Python: [Web3.py](https://github.com/ethereum/web3.py)
--   Ruby: [ethereum.rb](https://github.com/EthWorks/ethereum.rb)
--   Scala: [web3j-scala](https://github.com/mslinn/web3j-scala)
-
-[repo]: https://github.com/ethereum/web3.js
-[docs]: http://web3js.readthedocs.io/
-[npm-image-version]: https://img.shields.io/npm/v/web3.svg
-[npm-image-downloads]: https://img.shields.io/npm/dm/web3.svg
-[npm-url]: https://npmjs.org/package/web3
-[actions-image]: https://github.com/ethereum/web3.js/workflows/Build/badge.svg
-[actions-url]: https://github.com/ethereum/web3.js/actions
-[deps-dev-image]: https://david-dm.org/ethereum/web3.js/1.x/dev-status.svg
-[deps-dev-url]: https://david-dm.org/ethereum/web3.js/1.x?type=dev
-[dep-dev-image]: https://david-dm.org/ethereum/web3.js/dev-status.svg
-[dep-dev-url]: https://david-dm.org/ethereum/web3.js#info=devDependencies
-[coveralls-image]: https://coveralls.io/repos/ethereum/web3.js/badge.svg?branch=1.x
-[coveralls-url]: https://coveralls.io/r/ethereum/web3.js?branch=1.x
-[waffle-image]: https://badge.waffle.io/ethereum/web3.js.svg?label=ready&title=Ready
-[waffle-url]: https://waffle.io/ethereum/web3.js
-[discord-image]: https://img.shields.io/discord/593655374469660673?label=Discord&logo=discord&style=flat
-[discord-url]:  https://discord.gg/pb3U4zE8ca
-[lerna-image]: https://img.shields.io/badge/maintained%20with-lerna-cc00ff.svg
-[lerna-url]: https://lerna.js.org/
-[netlify-image]: https://api.netlify.com/api/v1/badges/1fc64933-d170-4939-8bdb-508ecd205519/deploy-status
-[netlify-url]: https://app.netlify.com/sites/web3-staging/deploys
-[stackexchange-image]: https://img.shields.io/badge/web3js-stackexchange-brightgreen
-[stackexchange-url]: https://ethereum.stackexchange.com/questions/tagged/web3js
-
-## Semantic versioning
-
-This project follows [semver](https://semver.org/) as closely as possible **from version 1.3.0 onwards**. Earlier minor version bumps [might](https://github.com/ethereum/web3.js/issues/3758) have included breaking behavior changes.
+[1]: https://github.com/ethereum/web3.js/blob/1.x/test/eth.accounts.sign.js
+[2]: https://github.com/ethereum/web3.js/blob/1.x/test/e2e.contract.events.js
+[3]: https://github.com/ethereum/web3.js/blob/1.x/test/e2e.minified.js
+[4]: https://github.com/ethereum/web3.js/blob/1.x/scripts/e2e.cdn.sh
+[5]: https://github.com/ethereum/web3.js/blob/1.x/scripts/e2e.windows.sh
