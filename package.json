@@ -1,19 +1,11 @@
 {
-    "name": "web3.js",
+    "name": "oasis-web3-tests",
     "private": true,
-    "description": "Ethereum JavaScript API wrapper repository",
+    "description": "Tests for Oasis Network Web3 gateway",
     "license": "LGPL-3.0",
     "engines": {
-        "node": ">=11.0.0"
+        "node": ">=12.0.0"
     },
-    "main": "./packages/web3/src/index.js",
-    "bundlesize": [
-        {
-            "path": "./packages/web3/dist/web3.min.js",
-            "maxSize": "1.5 mB",
-            "compression": "none"
-        }
-    ],
     "scripts": {
         "version": "npm run build",
         "postinstall": "npm run bootstrap",
@@ -131,6 +123,23 @@
         "ts-node": "^9.0.0",
         "typescript": "^3.9.7",
         "wait-port": "^0.2.9",
+	"web3": "^1.6.0",
+	"web3-utils": "^1.6.0",
+	"web3-eth-abi": "^1.6.0",
+	"web3-eth": "^1.6.0",
+	"web3-core-helpers": "^1.6.0",
+	"web3-net": "^1.6.0",
+	"web3-eth-contract": "^1.6.0",
+	"web3-shh": "^1.6.0",
+	"web3-providers-http": "^1.6.0",
+	"web3-core-subscriptions": "^1.6.0",
+	"web3-eth-accounts": "^1.6.0",
+	"web3-eth-ens": "^1.6.0",
+	"web3-providers-ipc": "^1.6.0",
+	"web3-providers-ws": "^1.6.0",
+	"web3-eth-personal": "^1.6.0",
+	"web3-eth-iban": "^1.6.0",
+	"web3-bzz": "^1.6.0",
         "webpack": "^4.44.2",
         "webpack-cli": "^3.3.12"
     }
