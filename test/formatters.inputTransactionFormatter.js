@@ -2,7 +2,7 @@ var bn = require('bn.js');
 var chai = require('chai');
 var assert = chai.assert;
 
-var formatters = require('../packages/web3-core-helpers/src/formatters.js');
+var formatters = require('web3-core-helpers/src/formatters.js');
 
 var tests = [{
     input: {

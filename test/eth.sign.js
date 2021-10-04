@@ -1,5 +1,5 @@
 var testMethod = require('./helpers/test.method.js');
-var Eth = require('../packages/web3-eth');
+var Eth = require('web3-eth');
 
 var eth = new Eth();
 

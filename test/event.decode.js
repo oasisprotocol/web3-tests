@@ -1,6 +1,6 @@
 var chai = require('chai');
 var assert = chai.assert;
-var Eth = require('../packages/web3-eth/');
+var Eth = require('web3-eth/');
 
 
 var name = 'event1';
