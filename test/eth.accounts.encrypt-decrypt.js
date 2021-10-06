@@ -1,4 +1,4 @@
-var Accounts = require("./web3-eth-accounts/src/index.js");
+var Accounts = require('web3-eth-accounts/src/index.js');
 var ethers = require('ethers');
 var chai = require('chai');
 var assert = chai.assert;

@@ -1,6 +1,6 @@
 var FakeHttpProvider = require('./helpers/FakeIpcProvider');
 var Web3 = require('web3');
-var Accounts = require("./web3-eth-accounts");
+var Accounts = require('web3-eth-accounts');
 var chai = require('chai');
 var assert = chai.assert;
 var bn = require('bn.js');
@@ -876,7 +876,7 @@ describe("eth", function () {
                         done(e);
                     });
                 });
-                
+
 
                 it("signTransaction should not call for chainId if common.customChain.chainId provided", function(done) {
                     var provider = new FakeHttpProvider();
