@@ -1,5 +1,9 @@
 # Guide to Oasis Web3's tests and CI
 
+## Note
+
+Originally, the tests in this repository were forked from https://github.com/ChainSafe/web3.js.
+
 Web3 is used in Node.js and browser contexts to interact with a wide variety of clients. Its tests
 try to cover as much of this domain as possible.
 
