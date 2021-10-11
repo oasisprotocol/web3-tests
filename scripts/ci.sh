@@ -9,19 +9,15 @@ set -o errexit
 
 if [ "$TEST" = "unit" ]; then
 
-  npm run build
   npm run test:unit
 
-elif [ "$TEST" = "build_and_lint" ]; then
+elif [ "$TEST" = "lint" ]; then
 
-  npm run build
   npm run dtslint
   npm run depcheck
-  npm run bundlesize
 
 elif [ "$TEST" = "unit_and_e2e_clients" ]; then
 
-  npm run build
   npm run test:e2e:ganache
   npm run test:e2e:geth:insta
   npm run test:e2e:geth:auto
@@ -30,7 +26,6 @@ elif [ "$TEST" = "unit_and_e2e_clients" ]; then
 
 elif [ "$TEST" = "e2e_browsers" ]; then
 
-  npm run build
   npm run test:e2e:chrome
   npm run test:e2e:firefox
   npm run test:e2e:min
