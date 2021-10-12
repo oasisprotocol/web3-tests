@@ -1,0 +1,34 @@
+dist: trusty
+language: node_js
+sudo: required
+branches:
+  only:
+    - master
+    - develop
+    - /^feature\/.*/
+    - /^release-.*/
+git:
+  quiet: true
+  submodules: true
+node_js:
+  - "8"
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install nodejs
+  - sudo apt-get install npm
+  - sudo apt-get install software-properties-common
+  - sudo add-apt-repository -y ppa:ethereum/ethereum
+install:
+  - npm run update
+  - yarn list web3
+  - yarn list web3-core
+  - yarn list web3-utils
+  - yarn list web3-core-promievent
+before_script:
+  - ./tools/run_ganache_cli.sh </dev/null 1>/dev/null 2>&1 &
+  - sleep 10
+script:
+  - npm run compile
+  - npm run test
+after_script:
+  - kill $(ps aux | grep 'ganache-cli' | awk '{print $2}')

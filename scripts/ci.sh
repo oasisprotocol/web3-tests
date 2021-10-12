@@ -38,7 +38,6 @@ elif [ "$TEST" = "e2e_truffle" ]; then
 
 elif [ "$TEST" = "e2e_mosaic" ]; then
 
-  npm run test:e2e:publish
   npm run test:e2e:mosaic
 
 elif [ "$TEST" = "e2e_windows" ]; then

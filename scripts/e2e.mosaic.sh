@@ -10,31 +10,10 @@
 # Exit immediately on error
 set -o errexit
 
-# To mimic `npm install web3` correctly, this test does not install Web3's dev deps.
-# However, we need the npm package `semver` to coerce yarn resolutions correctly.
-# It must be installed as a dev dep or Node complains. We also need web3's package.json
-# to resolve the current version + patch increment. So some file renaming is necessary here...
-cp package.json original.package.json
-rm package.json
-rm package-lock.json
-npm init --yes
-npm install --save-dev semver
+# TODO: Replace web3 packages below with oasis-web3 packages once they are ready.
 
-# Install mosaic and set yarn resolutions to virtually published patch version
-git clone https://github.com/cgewecke/mosaic-1.git
-scripts/js/resolutions.js mosaic-1
-cd mosaic-1
-
-# Install via registry and verify
-echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-echo "Installing updated web3 via virtual registry "
-echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-
-git submodule update --init --recursive
-yarn --registry http://localhost:4873
-
-yarn add web3@e2e --registry http://localhost:4873 --network-timeout 600000
-
+cd test/mosaic-1
+yarn
 yarn list web3
 yarn list web3-utils
 yarn list web3-core
@@ -46,6 +25,8 @@ cat ./package.json
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 echo "Running mosaicdao/mosaic-1 unit tests.      "
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+
+# TODO: Replace ganache_cli below with oasis toolset once it is ready.
 
 # Launch ganache
 ./tools/run_ganache_cli.sh </dev/null 1>/dev/null 2>&1 &
