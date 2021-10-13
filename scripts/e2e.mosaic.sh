@@ -1,6 +1,5 @@
 # -------------------------------------------------------------------------------------------
-# Run mosaicdao/mosaic-1 fork (w/ buidler truffle5 plugin) using a candidate
-# branch of web3 which has been published to a proxy npm registry in `e2e.npm.publish.sh`
+# Run mosaicdao/mosaic-1 fork (w/ buidler truffle5 plugin) using web3.
 #
 # This test's purpose is to watch web3 execute a long, complex test suite
 # It uses buidler-adapted fork of mosaicdao because that tool is simpler and
