@@ -58,20 +58,3 @@ jobs:
 
             - run: bash ./scripts/ci.sh
 
-    eth2:
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                node: [ 11, 12, 13, 14]
-        env:
-            TEST: "eth2"
-        steps:
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: ${{ matrix.node }}
-
-            - uses: actions/checkout@v2
-
-            - run: npm ci
-
-            - run: bash ./scripts/ci.sh

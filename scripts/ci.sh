@@ -43,8 +43,4 @@ elif [ "$TEST" = "e2e_gnosis_dex" ]; then
 
   npm run test:e2e:gnosis:dex
 
-elif [ "$TEST" = "eth2" ]; then
-  
-  bash ./scripts/eth2.sh
-
 fi

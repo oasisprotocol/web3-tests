@@ -7,7 +7,7 @@
 # Exit immediately on error
 set -o errexit
 
-cd ../test/ganache-core
+cd test/ganache-core
 npm ci
 npm run build
 
