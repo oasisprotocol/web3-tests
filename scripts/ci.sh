@@ -43,4 +43,8 @@ elif [ "$TEST" = "e2e_gnosis_dex" ]; then
 
   npm run test:e2e:gnosis:dex
 
+elif [ "$TEST" = "e2e_oasis" ]; then
+
+  npm run test:e2e:oasis
+
 fi

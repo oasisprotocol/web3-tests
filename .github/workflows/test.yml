@@ -32,6 +32,37 @@ jobs:
             - run: npm ci
 
             - run: bash ./scripts/ci.sh
+    unit-oasis:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                testCmd:
+                    [
+                        'e2e_oasis'
+                    ]
+        env:
+            OASIS_CORE_VERSION: "21.3.1"
+            OASIS_CORE_URL: "https://github.com/oasisprotocol/oasis-core/releases/download/v${OASIS_CORE_VERSION}/oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz"
+            OASIS_EMERALD_PARATIME_URL: "https://github.com/oasisprotocol/emerald-paratime/releases/download/v0.1.0-alpha1/emerald-paratime"
+            OASIS_NODE: "./oasis_core_${OASIS_CORE_VERSION}/oasis-node"
+            OASIS_NET_RUNNER: "./oasis_core_${OASIS_CORE_VERSION}/oasis-net-runner"
+            OASIS_EMERALD_PARATIME: "./emerald-paratime"
+            TEST: ${{ matrix.testCmd }}
+        steps:
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - uses: actions/checkout@v2
+
+            - run: npm ci
+
+            - run: wget "${OASIS_CORE_URL}" -O scripts/oasis_core.tar.gz && cd scripts && tar xfvz oasis_core.tar.gz
+
+            - run: wget "${OASIS_EMERALD_PARATIME_URL}" -O scripts/emerald-paratime
+
+            - run: bash ./scripts/ci.sh
+
     e2e:
         runs-on: ubuntu-latest
         strategy:
