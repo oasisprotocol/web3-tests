@@ -15,6 +15,7 @@ OFF=$'\e[0m'
 OASIS_NET_RUNNER="${OASIS_NET_RUNNER:-./oasis-net-runner}"
 OASIS_NODE="${OASIS_NODE:-./oasis-node}"
 OASIS_EMERALD_PARATIME="${OASIS_EMERALD_PARATIME:-./emerald-paratime}"
+OASIS_EVM_WEB3_GATEWAY="${OASIS_EVM_WEB3_GATEWAY:-./oasis-evm-web3-gateway}"
 
 # Destination address for test transfers.
 DST="oasis1qpkant39yhx59sagnzpc8v0sg8aerwa3jyqde3ge"
@@ -135,7 +136,9 @@ ${OASIS_NODE} debug control wait-nodes \
 advance_epoch 1
 wait_for_nodes
 
-# TODO: setup oasis web3
+
+${OASIS_EVM_WEB3_GATEWAY} &
+OASIS_EVM_WEB3_GATEWAY_PID=$!
 
 printf "${GRN}### Transferring tokens (1)...${OFF}\n"
 gen_deposit "${TEST_BASE_DIR}/tx1.json" 1000 "${DST}"
@@ -155,5 +158,6 @@ printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
 # TODO: run tests
 
+kill ${OASIS_EVM_WEB3_GATEWAY_PID}
 rm -rf "${TEST_BASE_DIR}"
 printf "${GRN}### Tests finished.${OFF}\n"

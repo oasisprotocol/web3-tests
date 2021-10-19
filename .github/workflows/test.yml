@@ -32,8 +32,28 @@ jobs:
             - run: npm ci
 
             - run: bash ./scripts/ci.sh
+    build-web3:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  repository: 'starfishlabs/oasis-evm-web3-gateway'
+                  ref: 'main'
+
+            - uses: actions/setup-go@v2
+              with:
+                  go-version: '^1.17'
+
+            - run: go build
+
+            - uses: actions/upload-artifact@v2
+              with:
+                  name: oasis-evm-web3-gateway
+                  path: oasis-evm-web3-gateway
     unit-oasis:
         runs-on: ubuntu-latest
+        needs:
+            - build-web3
         strategy:
             fail-fast: false
             matrix:
@@ -42,12 +62,11 @@ jobs:
                         'e2e_oasis'
                     ]
         env:
-            OASIS_CORE_VERSION: "21.3.1"
-            OASIS_CORE_URL: "https://github.com/oasisprotocol/oasis-core/releases/download/v${OASIS_CORE_VERSION}/oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz"
-            OASIS_EMERALD_PARATIME_URL: "https://github.com/oasisprotocol/emerald-paratime/releases/download/v0.1.0-alpha1/emerald-paratime"
-            OASIS_NODE: "./oasis_core_${OASIS_CORE_VERSION}/oasis-node"
-            OASIS_NET_RUNNER: "./oasis_core_${OASIS_CORE_VERSION}/oasis-net-runner"
-            OASIS_EMERALD_PARATIME: "./emerald-paratime"
+            OASIS_CORE_VERSION: 21.3.1
+            OASIS_NODE: scripts/oasis-node
+            OASIS_NET_RUNNER: scripts/oasis-net-runner
+            OASIS_EMERALD_PARATIME: scripts/emerald-paratime
+            OASIS_EVM_WEB3_GATEWAY: scripts/oasis-evm-web3-gateway
             TEST: ${{ matrix.testCmd }}
         steps:
             - uses: actions/setup-node@v1
@@ -57,9 +76,17 @@ jobs:
 
             - run: npm ci
 
-            - run: wget "${OASIS_CORE_URL}" -O scripts/oasis_core.tar.gz && cd scripts && tar xfvz oasis_core.tar.gz
+            - run: wget "https://github.com/oasisprotocol/oasis-core/releases/download/v${OASIS_CORE_VERSION}/oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz"
+            - run: tar xfvz oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz
+            - run: mv oasis_core_${OASIS_CORE_VERSION}_linux_amd64/oasis-node ${OASIS_NODE}
+            - run: mv oasis_core_${OASIS_CORE_VERSION}_linux_amd64/oasis-net-runner ${OASIS_NET_RUNNER}
 
-            - run: wget "${OASIS_EMERALD_PARATIME_URL}" -O scripts/emerald-paratime
+            - run: wget "https://github.com/oasisprotocol/emerald-paratime/releases/download/v0.1.0-alpha1/emerald-paratime" -O ${OASIS_EMERALD_PARATIME}
+
+            - uses: actions/download-artifact@v2
+              with:
+                name: oasis-evm-web3-gateway
+                path: ${OASIS_EVM_WEB3_GATEWAY}
 
             - run: bash ./scripts/ci.sh
 
