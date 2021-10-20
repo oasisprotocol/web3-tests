@@ -45,6 +45,7 @@ start_network() {
 		--fixture.default.setup_runtimes=false \
 		--fixture.default.num_entities=1 \
 		--fixture.default.epochtime_mock=true \
+		--fixture.default.runtime.binary=${OASIS_EMERALD_PARATIME} \
 		--basedir.no_temp_dir \
 		--basedir ${TEST_BASE_DIR} &
 
@@ -60,6 +61,13 @@ NUM_NODES=1
 
 # Current nonce for transactions (incremented after every submit_tx).
 NONCE=0
+
+# Helper function for running the EVM web3 gateway.
+start_web3() {
+	local height=$1
+	${OASIS_EVM_WEB3_GATEWAY} \
+	    --addr ${OASIS_NODE_GRPC_ADDR} &
+}
 
 # Helper function for advancing the current epoch to the given parameter.
 advance_epoch() {
@@ -127,21 +135,21 @@ ${OASIS_NODE} debug control wait-nodes \
 advance_epoch 1
 wait_for_nodes
 
-${OASIS_EVM_WEB3_GATEWAY} &
+start_web3
 
-printf "${GRN}### Transferring tokens (1)...${OFF}\n"
-gen_deposit "${TEST_BASE_DIR}/tx1.json" 1000 "${DST}"
-submit_tx "${TEST_BASE_DIR}/tx1.json"
+#printf "${GRN}### Transferring tokens (1)...${OFF}\n"
+#gen_deposit "${TEST_BASE_DIR}/tx1.json" 1000 "${DST}"
+#submit_tx "${TEST_BASE_DIR}/tx1.json"
 
-advance_epoch 2
-wait_for_nodes
+#advance_epoch 2
+#wait_for_nodes
 
-printf "${GRN}### Transferring tokens (2)...${OFF}\n"
-gen_transfer "${TEST_BASE_DIR}/tx2.json" 123 "${DST}"
-submit_tx "${TEST_BASE_DIR}/tx2.json"
+#printf "${GRN}### Transferring tokens (2)...${OFF}\n"
+#gen_transfer "${TEST_BASE_DIR}/tx2.json" 123 "${DST}"
+#submit_tx "${TEST_BASE_DIR}/tx2.json"
 
-advance_epoch 3
-wait_for_nodes
+#advance_epoch 3
+#wait_for_nodes
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
