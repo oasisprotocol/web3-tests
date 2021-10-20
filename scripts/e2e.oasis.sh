@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+
+# Runs e2e tests on the Oasis network stack.
+# Mandatory variables:
+# OASIS_NODE: path to oasis-node binary
+# OASIS_NET_RUNNER: path to oasis-net-runner binary
+# OASIS_EMERALD_PARATIME: path to Oasis Emerald Paratime binary
+# OASIS_EVM_WEB3_GATEWAY: path to Oasis EVM Web3 Gateway binary
+
 set -o nounset -o pipefail -o errexit
 trap "exit 1" INT
 
@@ -10,12 +18,6 @@ cd "${ROOT}"
 RED=$'\e[31;1m'
 GRN=$'\e[32;1m'
 OFF=$'\e[0m'
-
-# Paths to various binaries and config files that we need.
-OASIS_NET_RUNNER="${OASIS_NET_RUNNER:-./oasis-net-runner}"
-OASIS_NODE="${OASIS_NODE:-./oasis-node}"
-OASIS_EMERALD_PARATIME="${OASIS_EMERALD_PARATIME:-./emerald-paratime}"
-OASIS_EVM_WEB3_GATEWAY="${OASIS_EVM_WEB3_GATEWAY:-./oasis-evm-web3-gateway}"
 
 # Destination address for test transfers.
 DST="oasis1qpkant39yhx59sagnzpc8v0sg8aerwa3jyqde3ge"
@@ -89,23 +91,12 @@ submit_tx() {
 	NONCE=$((NONCE+1))
 }
 
-# Helper function that generates a transfer transaction.
+# Helper function that generates a runtime deposit transaction.
 gen_deposit() {
 	local tx=$1
 	local amount=$2
 	local dst=$3
-	${OASIS_NODE} stake account gen_deposit \
-		--assume_yes \
-		--stake.amount $amount \
-		--stake.transfer.destination "$dst" \
-		--transaction.file "$tx" \
-		--transaction.nonce ${NONCE} \
-		--transaction.fee.amount 0 \
-		--transaction.fee.gas 10000 \
-		--debug.dont_blame_oasis \
-		--debug.test_entity \
-		--debug.allow_test_keys \
-		--genesis.file "${TEST_BASE_DIR}/net-runner/network/genesis.json"
+	# TODO
 }
 
 # Helper function that generates a transfer transaction.
@@ -136,9 +127,7 @@ ${OASIS_NODE} debug control wait-nodes \
 advance_epoch 1
 wait_for_nodes
 
-
 ${OASIS_EVM_WEB3_GATEWAY} &
-OASIS_EVM_WEB3_GATEWAY_PID=$!
 
 printf "${GRN}### Transferring tokens (1)...${OFF}\n"
 gen_deposit "${TEST_BASE_DIR}/tx1.json" 1000 "${DST}"
@@ -158,6 +147,5 @@ printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
 # TODO: run tests
 
-kill ${OASIS_EVM_WEB3_GATEWAY_PID}
 rm -rf "${TEST_BASE_DIR}"
 printf "${GRN}### Tests finished.${OFF}\n"
