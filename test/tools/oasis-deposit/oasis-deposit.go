@@ -25,8 +25,6 @@ import (
 	"github.com/oasisprotocol/oasis-sdk/client-sdk/go/types"
 )
 
-const evmRuntimeID = "00000000000000000000000000000000000000000000000072c8215e60d5bca7"
-
 const highGasAmount = 1000000
 
 func sigspecForSigner(signer signature.Signer) types.SignatureAddressSpec {
@@ -105,6 +103,7 @@ func SignAndSubmitTx(ctx context.Context, rtc client.RuntimeClient, signer signa
 func main() {
 	amount := flag.Uint64("amount", 0, "amount to deposit")
 	sock := flag.String("sock", "", "oasis-net-runner UNIX socket address")
+	rtid := flag.String("rtid", "8000000000000000000000000000000000000000000000000000000000000000", "Runtime ID")
 	flag.Parse()
 
 	if (*amount == 0) || (*sock == "") {
@@ -113,7 +112,7 @@ func main() {
 	}
 
 	var runtimeID common.Namespace
-	if err := runtimeID.UnmarshalHex(evmRuntimeID); err != nil {
+	if err := runtimeID.UnmarshalHex(*rtid); err != nil {
 		fmt.Printf("can't decode runtime ID: %s\n", err)
 		os.Exit(1)
 	}
