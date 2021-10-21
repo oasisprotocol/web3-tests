@@ -45,7 +45,9 @@ start_network() {
 		--fixture.default.setup_runtimes=false \
 		--fixture.default.num_entities=1 \
 		--fixture.default.epochtime_mock=true \
+		--fixture.default.keymanager.binary '' \
 		--fixture.default.runtime.binary=${OASIS_EMERALD_PARATIME} \
+		--fixture.default.staking_genesis ../test/tools/staking_genesis.json \
 		--basedir.no_temp_dir \
 		--basedir ${TEST_BASE_DIR} &
 
