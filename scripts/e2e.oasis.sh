@@ -31,7 +31,7 @@ cleanup() {
 trap "cleanup" EXIT
 
 # The base directory for all the node and test env cruft.
-TEST_BASE_DIR=$(mktemp -d -t oasis-web3-tests-XXXXXXXXXX)
+TEST_BASE_DIR=/tmp/eth-runtime-test #$(mktemp -d -t oasis-web3-tests-XXXXXXXXXX)
 
 # The oasis-node binary must be in the path for the oasis-net-runner to find it.
 export PATH="${PATH}:${ROOT}"
@@ -66,9 +66,10 @@ NONCE=0
 
 # Helper function for running the EVM web3 gateway.
 start_web3() {
-	local height=$1
+	pushd $(dirname ${OASIS_EVM_WEB3_GATEWAY})
 	${OASIS_EVM_WEB3_GATEWAY} \
 	    --addr ${OASIS_NODE_GRPC_ADDR} &
+	popd
 }
 
 # Helper function for advancing the current epoch to the given parameter.
@@ -102,11 +103,9 @@ submit_tx() {
 }
 
 # Helper function that generates a runtime deposit transaction.
-gen_deposit() {
-	local tx=$1
-	local amount=$2
-	local dst=$3
-	# TODO
+deposit() {
+	local amount=$1
+	../test/tools/oasis-deposit/oasis-deposit -sock unix:${TEST_BASE_DIR}/net-runner/network/compute-0/internal.sock -amount $amount
 }
 
 # Helper function that generates a transfer transaction.
@@ -139,23 +138,18 @@ wait_for_nodes
 
 start_web3
 
-#printf "${GRN}### Transferring tokens (1)...${OFF}\n"
-#gen_deposit "${TEST_BASE_DIR}/tx1.json" 1000 "${DST}"
-#submit_tx "${TEST_BASE_DIR}/tx1.json"
+printf "${GRN}### Depositing tokens to runtime (1)...${OFF}\n"
 
-#advance_epoch 2
-#wait_for_nodes
-
-#printf "${GRN}### Transferring tokens (2)...${OFF}\n"
-#gen_transfer "${TEST_BASE_DIR}/tx2.json" 123 "${DST}"
-#submit_tx "${TEST_BASE_DIR}/tx2.json"
-
-#advance_epoch 3
-#wait_for_nodes
+deposit 1000
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
-# TODO: run tests
+GANACHE=true npx nyc --no-clean --silent _mocha -- \
+  --reporter spec \
+  --require ts-node/register \
+  --grep 'E2E' \
+  --timeout 5000 \
+  --exit
 
 rm -rf "${TEST_BASE_DIR}"
 printf "${GRN}### Tests finished.${OFF}\n"

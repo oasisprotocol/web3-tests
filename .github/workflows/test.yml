@@ -49,11 +49,30 @@ jobs:
             - uses: actions/upload-artifact@v2
               with:
                   name: oasis-evm-web3-gateway
-                  path: oasis-evm-web3-gateway
+                  path: |
+                      oasis-evm-web3-gateway
+                      conf/server.yaml
+    build-oasis-deposit:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+
+            - uses: actions/setup-go@v2
+              with:
+                  go-version: '^1.17'
+
+            - run: cd test/tools/oasis-deposit
+            - run: go build
+
+            - uses: actions/upload-artifact@v2
+              with:
+                  name: oasis-deposit
+                  path: oasis-deposit
     unit-oasis:
         runs-on: ubuntu-latest
         needs:
             - build-web3
+            - build-oasis-deposit
         strategy:
             fail-fast: false
             matrix:
@@ -95,6 +114,12 @@ jobs:
                 name: oasis-evm-web3-gateway
                 path: scripts
             - run: chmod a+x ${OASIS_EVM_WEB3_GATEWAY}
+
+            - uses: actions/download-artifact@v2
+              with:
+                  name: oasis-deposit
+                  path: test/tools/oasis-deposit
+            - run: chmod a+x test/tools/oasis-deposit/oasis-deposit
 
             - run: bash ./scripts/ci.sh
 
