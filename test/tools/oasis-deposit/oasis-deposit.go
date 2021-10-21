@@ -132,7 +132,7 @@ func main() {
 	defer cancelFn()
 
 	ba := types.NewBaseUnits(*quantity.NewFromUint64(*amount), types.NativeDenomination)
-	txb := consAcc.Deposit(ba)
+	txb := consAcc.Deposit(ba).SetFeeConsensusMessages(1)
 	_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
 	if err != nil {
 		fmt.Printf("can't deposit: %s\n", err)
