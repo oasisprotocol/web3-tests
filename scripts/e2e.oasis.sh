@@ -33,12 +33,17 @@ trap "cleanup" EXIT
 
 # The base directory for all the node and test env cruft.
 TEST_BASE_DIR=/tmp/eth-runtime-test #$(mktemp -d -t oasis-web3-tests-XXXXXXXXXX)
-
 # The oasis-node binary must be in the path for the oasis-net-runner to find it.
 export PATH="${PATH}:${ROOT}"
+export OASIS_NODE_GRPC_ADDR="unix:${TEST_BASE_DIR}/net-runner/network/validator-0/internal.sock"
+# How many nodes to wait for each epoch.
+NUM_NODES=1
+# Current nonce for transactions (incremented after every submit_tx).
+NONCE=0
 
 # Helper function for running the test network.
 start_network() {
+	rm -rf ${TEST_BASE_DIR}
 	mkdir ${TEST_BASE_DIR}
 	${OASIS_NET_RUNNER} \
 		--fixture.default.node.binary ${OASIS_NODE} \
@@ -47,22 +52,11 @@ start_network() {
 		--fixture.default.num_entities 2 \
 		--fixture.default.keymanager.binary '' \
 		--fixture.default.runtime.binary=${OASIS_EMERALD_PARATIME} \
-		--fixture.default.staking_genesis ../test/tools/staking_genesis.json \
+		--fixture.default.staking_genesis ${ROOT}/../test/tools/staking_genesis.json \
 		--basedir.no_temp_dir \
 		--basedir ${TEST_BASE_DIR} &
 
 }
-
-printf "${GRN}### Starting the test network...${OFF}\n"
-start_network
-
-export OASIS_NODE_GRPC_ADDR="unix:${TEST_BASE_DIR}/net-runner/network/validator-0/internal.sock"
-
-# How many nodes to wait for each epoch.
-NUM_NODES=1
-
-# Current nonce for transactions (incremented after every submit_tx).
-NONCE=0
 
 # Helper function for running the EVM web3 gateway.
 start_web3() {
@@ -96,9 +90,7 @@ submit_tx() {
 # Helper function that generates a runtime deposit transaction.
 deposit() {
 	local amount=$1
-	../test/tools/oasis-deposit/oasis-deposit -sock unix:${TEST_BASE_DIR}/net-runner/network/client-0/internal.sock -amount $amount
-	echo $?
-	echo done
+	${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock unix:${TEST_BASE_DIR}/net-runner/network/client-0/internal.sock -amount $amount
 }
 
 # Helper function that generates a transfer transaction.
@@ -119,6 +111,22 @@ gen_transfer() {
 		--debug.allow_test_keys \
 		--genesis.file "${TEST_BASE_DIR}/net-runner/network/genesis.json"
 }
+
+run_tests() {
+    GANACHE=true
+    pushd ${ROOT}/..
+    npx nyc --no-clean --silent _mocha -- \
+      --reporter spec \
+      --require ts-node/register \
+      --grep 'E2E' \
+      --inverse \
+      --timeout 5000 \
+      --exit
+    popd
+}
+
+printf "${GRN}### Starting the test network...${OFF}\n"
+start_network
 
 printf "${GRN}### Waiting for the validator to register...${OFF}\n"
 ${OASIS_NODE} debug control wait-nodes \
@@ -141,11 +149,6 @@ deposit 1000
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
-GANACHE=true npx nyc --no-clean --silent _mocha -- \
-  --reporter spec \
-  --require ts-node/register \
-  --grep 'E2E' \
-  --timeout 5000 \
-  --exit
+run_tests
 
 printf "${GRN}### Tests finished.${OFF}\n"
