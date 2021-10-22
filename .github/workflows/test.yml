@@ -68,7 +68,7 @@ jobs:
             - uses: actions/upload-artifact@v2
               with:
                   name: oasis-deposit
-                  path: oasis-deposit
+                  path: test/tools/oasis-deposit/oasis-deposit
     unit-oasis:
         runs-on: ubuntu-latest
         needs:

@@ -27,7 +27,7 @@ cleanup() {
 	printf "${OFF}"
 	pkill -P $$ || true
 	wait || true
-	rm -rf "${TEST_BASE_DIR}"
+#	rm -rf "${TEST_BASE_DIR}"
 }
 trap "cleanup" EXIT
 
