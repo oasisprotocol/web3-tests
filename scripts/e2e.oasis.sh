@@ -27,6 +27,7 @@ cleanup() {
 	printf "${OFF}"
 	pkill -P $$ || true
 	wait || true
+	rm -rf "${TEST_BASE_DIR}"
 }
 trap "cleanup" EXIT
 
@@ -38,13 +39,12 @@ export PATH="${PATH}:${ROOT}"
 
 # Helper function for running the test network.
 start_network() {
-	local height=$1
+	mkdir ${TEST_BASE_DIR}
 	${OASIS_NET_RUNNER} \
-	    --fixture.default.node.binary ${OASIS_NODE} \
-		--fixture.default.initial_height=${height} \
-		--fixture.default.setup_runtimes=false \
-		--fixture.default.num_entities=1 \
-		--fixture.default.epochtime_mock=true \
+		--fixture.default.node.binary ${OASIS_NODE} \
+		--fixture.default.deterministic_entities \
+		--fixture.default.fund_entities \
+		--fixture.default.num_entities 2 \
 		--fixture.default.keymanager.binary '' \
 		--fixture.default.runtime.binary=${OASIS_EMERALD_PARATIME} \
 		--fixture.default.staking_genesis ../test/tools/staking_genesis.json \
@@ -54,7 +54,7 @@ start_network() {
 }
 
 printf "${GRN}### Starting the test network...${OFF}\n"
-start_network 1
+start_network
 
 export OASIS_NODE_GRPC_ADDR="unix:${TEST_BASE_DIR}/net-runner/network/validator-0/internal.sock"
 
@@ -70,15 +70,6 @@ start_web3() {
 	${OASIS_EVM_WEB3_GATEWAY} \
 	    --addr ${OASIS_NODE_GRPC_ADDR} &
 	popd
-}
-
-# Helper function for advancing the current epoch to the given parameter.
-advance_epoch() {
-	local epoch=$1
-	printf "${GRN}### Advancing epoch ($epoch)...${OFF}\n"
-	${OASIS_NODE} debug control set-epoch \
-		--address ${OASIS_NODE_GRPC_ADDR} \
-		--epoch $epoch
 }
 
 # Helper function that waits for all nodes to register.
@@ -105,7 +96,9 @@ submit_tx() {
 # Helper function that generates a runtime deposit transaction.
 deposit() {
 	local amount=$1
-	../test/tools/oasis-deposit/oasis-deposit -sock unix:${TEST_BASE_DIR}/net-runner/network/compute-0/internal.sock -amount $amount
+	../test/tools/oasis-deposit/oasis-deposit -sock unix:${TEST_BASE_DIR}/net-runner/network/client-0/internal.sock -amount $amount
+	echo $?
+	echo done
 }
 
 # Helper function that generates a transfer transaction.
@@ -133,12 +126,16 @@ ${OASIS_NODE} debug control wait-nodes \
 	--nodes 1 \
 	--wait
 
-advance_epoch 1
 wait_for_nodes
+
+# wait_for_nodes doesn't seem to do anything :/
+sleep 5
+
+printf "${GRN}### Starting oasis-evm-web3-gateway...${OFF}\n"
 
 start_web3
 
-printf "${GRN}### Depositing tokens to runtime (1)...${OFF}\n"
+printf "${GRN}### Depositing tokens to runtime...${OFF}\n"
 
 deposit 1000
 
@@ -151,5 +148,4 @@ GANACHE=true npx nyc --no-clean --silent _mocha -- \
   --timeout 5000 \
   --exit
 
-rm -rf "${TEST_BASE_DIR}"
 printf "${GRN}### Tests finished.${OFF}\n"
