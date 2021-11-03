@@ -11,7 +11,10 @@ set -o nounset -o pipefail -o errexit
 trap "exit 1" INT
 
 # Get the root directory of the tests dir inside the repository.
-ROOT="$(cd $(dirname $0); pwd -P)"
+ROOT="$(
+    cd $(dirname $0)
+    pwd -P
+)"
 cd "${ROOT}"
 
 # ANSI escape codes to brighten up the output.
@@ -24,10 +27,10 @@ DST="oasis1qpkant39yhx59sagnzpc8v0sg8aerwa3jyqde3ge"
 
 # Kill all dangling processes on exit.
 cleanup() {
-	printf "${OFF}"
-	pkill -P $$ || true
-	wait || true
-#	rm -rf "${TEST_BASE_DIR}"
+    printf "${OFF}$"
+    pkill -P $$ || true
+    wait || true
+    #	rm -rf "${TEST_BASE_DIR}"
 }
 trap "cleanup" EXIT
 
@@ -35,7 +38,7 @@ trap "cleanup" EXIT
 TEST_BASE_DIR=/tmp/eth-runtime-test #$(mktemp -d -t oasis-web3-tests-XXXXXXXXXX)
 # The oasis-node binary must be in the path for the oasis-net-runner to find it.
 export PATH="${PATH}:${ROOT}"
-export OASIS_NODE_GRPC_ADDR="unix:${TEST_BASE_DIR}/net-runner/network/validator-0/internal.sock"
+export OASIS_NODE_GRPC_ADDR="unix:${TEST_BASE_DIR}/net-runner/network/client-0/internal.sock"
 # How many nodes to wait for each epoch.
 NUM_NODES=1
 # Current nonce for transactions (incremented after every submit_tx).
@@ -43,85 +46,96 @@ NONCE=0
 
 # Helper function for running the test network.
 start_network() {
-	rm -rf ${TEST_BASE_DIR}
-	mkdir ${TEST_BASE_DIR}
-	${OASIS_NET_RUNNER} \
-		--fixture.default.node.binary ${OASIS_NODE} \
-		--fixture.default.deterministic_entities \
-		--fixture.default.fund_entities \
-		--fixture.default.num_entities 2 \
-		--fixture.default.keymanager.binary '' \
-		--fixture.default.runtime.binary=${OASIS_EMERALD_PARATIME} \
-		--fixture.default.staking_genesis ${ROOT}/../test/tools/staking_genesis.json \
-		--basedir.no_temp_dir \
-		--basedir ${TEST_BASE_DIR} &
+    FIXTURE_FILE="${TEST_BASE_DIR}/fixture.json"
 
+    rm -rf ${TEST_BASE_DIR}
+    mkdir ${TEST_BASE_DIR}
+    ${OASIS_NET_RUNNER} \
+        dump-fixture \
+        --fixture.default.node.binary ${OASIS_NODE} \
+        --fixture.default.deterministic_entities \
+        --fixture.default.fund_entities \
+        --fixture.default.num_entities 2 \
+        --fixture.default.keymanager.binary '' \
+        --fixture.default.runtime.binary=${OASIS_EMERALD_PARATIME} \
+        --fixture.default.halt_epoch 100000 \
+        --fixture.default.staking_genesis ${ROOT}/../test/tools/staking_genesis.json > "$FIXTURE_FILE"
+
+    # Allow expensive queries.
+    jq '.clients[0].runtime_config."1".allow_expensive_queries = true' "$FIXTURE_FILE" > "$FIXTURE_FILE.tmp"
+    # TODO: also increase batch size.
+    mv "$FIXTURE_FILE.tmp" "$FIXTURE_FILE"
+
+    "${OASIS_NET_RUNNER}" \
+        --fixture.file "$FIXTURE_FILE" \
+        --basedir ${TEST_BASE_DIR} \
+        --basedir.no_temp_dir &
 }
 
 # Helper function for running the EVM web3 gateway.
 start_web3() {
-	pushd $(dirname ${OASIS_EVM_WEB3_GATEWAY})
-	${OASIS_EVM_WEB3_GATEWAY} \
-	    --addr ${OASIS_NODE_GRPC_ADDR} &
-	popd
+    pushd $(dirname ${OASIS_EVM_WEB3_GATEWAY})
+    ${OASIS_EVM_WEB3_GATEWAY} \
+        --config conf/server.yml &
+    popd
 }
 
 # Helper function that waits for all nodes to register.
 wait_for_nodes() {
-	printf "${GRN}### Waiting for all nodes to register...${OFF}\n"
-	${OASIS_NODE} debug control wait-nodes \
-		--address ${OASIS_NODE_GRPC_ADDR} \
-		--nodes ${NUM_NODES} \
-		--wait
+    printf "${GRN}### Waiting for all nodes to register...${OFF}\n"
+    ${OASIS_NODE} debug control wait-nodes \
+        --address ${OASIS_NODE_GRPC_ADDR} \
+        --nodes ${NUM_NODES} \
+        --wait
 }
 
 # Helper function that submits the given transaction JSON file.
 submit_tx() {
-	local tx=$1
-	# Submit transaction.
-	${OASIS_NODE} consensus submit_tx \
-		--transaction.file "$tx" \
-		--address ${OASIS_NODE_GRPC_ADDR} \
-		--debug.allow_test_keys
-	# Increase nonce.
-	NONCE=$((NONCE+1))
+    local tx=$1
+    # Submit transaction.
+    ${OASIS_NODE} consensus submit_tx \
+        --transaction.file "$tx" \
+        --address ${OASIS_NODE_GRPC_ADDR} \
+        --debug.allow_test_keys
+    # Increase nonce.
+    NONCE=$((NONCE + 1))
 }
 
 # Helper function that generates a runtime deposit transaction.
 deposit() {
-	local amount=$1
-	${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock unix:${TEST_BASE_DIR}/net-runner/network/client-0/internal.sock -amount $amount
+    local amount=$1
+    ${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock "${OASIS_NODE_GRPC_ADDR}" -amount $amount
 }
 
 # Helper function that generates a transfer transaction.
 gen_transfer() {
-	local tx=$1
-	local amount=$2
-	local dst=$3
-	${OASIS_NODE} stake account gen_transfer \
-		--assume_yes \
-		--stake.amount $amount \
-		--stake.transfer.destination "$dst" \
-		--transaction.file "$tx" \
-		--transaction.nonce ${NONCE} \
-		--transaction.fee.amount 0 \
-		--transaction.fee.gas 10000 \
-		--debug.dont_blame_oasis \
-		--debug.test_entity \
-		--debug.allow_test_keys \
-		--genesis.file "${TEST_BASE_DIR}/net-runner/network/genesis.json"
+    local tx=$1
+    local amount=$2
+    local dst=$3
+    ${OASIS_NODE} stake account gen_transfer \
+        --assume_yes \
+        --stake.amount $amount \
+        --stake.transfer.destination "$dst" \
+        --transaction.file "$tx" \
+        --transaction.nonce ${NONCE} \
+        --transaction.fee.amount 0 \
+        --transaction.fee.gas 10000 \
+        --debug.dont_blame_oasis \
+        --debug.test_entity \
+        --debug.allow_test_keys \
+        --genesis.file "${TEST_BASE_DIR}/net-runner/network/genesis.json"
 }
 
 run_tests() {
     GANACHE=true
     pushd ${ROOT}/..
     npx nyc --no-clean --silent _mocha -- \
-      --reporter spec \
-      --require ts-node/register \
-      --grep 'E2E' \
-      --inverse \
-      --timeout 5000 \
-      --exit
+        --reporter spec \
+        --require ts-node/register \
+        --grep 'E2E' \
+        --inverse \
+        --timeout 5000 \
+        --exit
     popd
 }
 
@@ -130,9 +144,9 @@ start_network
 
 printf "${GRN}### Waiting for the validator to register...${OFF}\n"
 ${OASIS_NODE} debug control wait-nodes \
-	--address ${OASIS_NODE_GRPC_ADDR} \
-	--nodes 1 \
-	--wait
+    --address ${OASIS_NODE_GRPC_ADDR} \
+    --nodes 1 \
+    --wait
 
 wait_for_nodes
 
@@ -145,7 +159,7 @@ start_web3
 
 printf "${GRN}### Depositing tokens to runtime...${OFF}\n"
 
-deposit 1000
+deposit 1000000000000
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 

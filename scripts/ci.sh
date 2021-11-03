@@ -15,6 +15,7 @@ elif [ "$TEST" = "lint" ]; then
 
   npm run dtslint
   npm run depcheck
+  npm run lint
 
 elif [ "$TEST" = "unit_and_e2e_clients" ]; then
 

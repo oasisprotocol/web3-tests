@@ -21,11 +21,16 @@ import (
 	"github.com/oasisprotocol/oasis-sdk/client-sdk/go/crypto/signature/sr25519"
 	"github.com/oasisprotocol/oasis-sdk/client-sdk/go/modules/accounts"
 	consAccClient "github.com/oasisprotocol/oasis-sdk/client-sdk/go/modules/consensusaccounts"
+	"github.com/oasisprotocol/oasis-sdk/client-sdk/go/modules/core"
 	"github.com/oasisprotocol/oasis-sdk/client-sdk/go/testing"
 	"github.com/oasisprotocol/oasis-sdk/client-sdk/go/types"
 )
 
 const highGasAmount = 1000000
+
+// Default address is derived from the following ETH mnemonic: "tray ripple elevator ramp insect butter top mouse old cinnamon panther chief"
+// Correcponging ETH address: 0x90adE3B7065fa715c7a150313877dF1d33e777D5
+const defaultToAddr = "oasis1qpupfu7e2n6pkezeaw0yhj8mcem8anj64ytrayne"
 
 func sigspecForSigner(signer signature.Signer) types.SignatureAddressSpec {
 	switch pk := signer.Public().(type) {
@@ -57,7 +62,8 @@ func EstimateGas(ctx context.Context, rtc client.RuntimeClient, tx types.Transac
 	// Set the starting gas to something high, so we don't run out.
 	tx.AuthInfo.Fee.Gas = highGasAmount
 	// Estimate gas usage.
-	if err := rtc.Query(ctx, client.RoundLatest, "core.EstimateGas", tx, &gas); err != nil {
+	gas, err := core.NewV1(rtc).EstimateGas(ctx, client.RoundLatest, &tx)
+	if err != nil {
 		tx.AuthInfo.Fee.Gas = oldGas + extraGas
 		return tx
 	}
@@ -104,6 +110,7 @@ func main() {
 	amount := flag.Uint64("amount", 0, "amount to deposit")
 	sock := flag.String("sock", "", "oasis-net-runner UNIX socket address")
 	rtid := flag.String("rtid", "8000000000000000000000000000000000000000000000000000000000000000", "Runtime ID")
+	to := flag.String("to", defaultToAddr, "deposit receiver")
 	flag.Parse()
 
 	if (*amount == 0) || (*sock == "") {
@@ -125,24 +132,21 @@ func main() {
 	defer conn.Close()
 
 	rtc := client.New(conn, runtimeID)
-	acc := accounts.NewV1(rtc)
 	consAcc := consAccClient.NewV1(rtc)
 
 	ctx, cancelFn := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancelFn()
 
+	var addr types.Address
+	if err = addr.UnmarshalText([]byte(*to)); err != nil {
+		fmt.Println("unmarshal addr err:", err)
+		os.Exit(1)
+	}
 	ba := types.NewBaseUnits(*quantity.NewFromUint64(*amount), types.NativeDenomination)
-	txb := consAcc.Deposit(ba).SetFeeConsensusMessages(1)
+	txb := consAcc.Deposit(&addr, ba).SetFeeConsensusMessages(1)
 	_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
 	if err != nil {
 		fmt.Printf("can't deposit: %s\n", err)
-		os.Exit(1)
-	}
-
-	txb = acc.Transfer(testing.Dave.Address, ba)
-	_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
-	if err != nil {
-		fmt.Printf("can't transfer: %s\n", err)
 		os.Exit(1)
 	}
 

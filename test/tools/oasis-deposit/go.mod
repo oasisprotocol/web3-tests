@@ -3,8 +3,8 @@ module github.com/oasisprotocol/web3-tests/test/tools/oasis-deposit
 go 1.17
 
 require (
-	github.com/oasisprotocol/oasis-core/go v0.2103.1
-	github.com/oasisprotocol/oasis-sdk/client-sdk/go v0.1.1-0.20211019175813-34bb138d1bb2
+	github.com/oasisprotocol/oasis-core/go v0.2103.3
+	github.com/oasisprotocol/oasis-sdk/client-sdk/go v0.1.1-0.20211029064010-e50613fe7c04
 	google.golang.org/grpc v1.41.0
 )
 

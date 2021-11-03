@@ -1111,8 +1111,12 @@ github.com/oasisprotocol/deoxysii v0.0.0-20200527154044-851aec403956 h1:etZXZf8f
 github.com/oasisprotocol/deoxysii v0.0.0-20200527154044-851aec403956/go.mod h1:cE5EgXTIhq5oAVdZ7LZd1FjTRLALPEzv93CWzBtDkyI=
 github.com/oasisprotocol/oasis-core/go v0.2103.1 h1:ljCZ4Hj9+t/dboZZwr/7J1/PSYREPOhcJiYQ2zPzkIw=
 github.com/oasisprotocol/oasis-core/go v0.2103.1/go.mod h1:X8I4m5T7qlEmFR0nLTE9Fwm6HKIuVlrZ8BBmBIxkCKk=
+github.com/oasisprotocol/oasis-core/go v0.2103.3 h1:bzj8e6Y71qiylvXld065GGWow0TSEY9Usq2aLsZv16w=
+github.com/oasisprotocol/oasis-core/go v0.2103.3/go.mod h1:X8I4m5T7qlEmFR0nLTE9Fwm6HKIuVlrZ8BBmBIxkCKk=
 github.com/oasisprotocol/oasis-sdk/client-sdk/go v0.1.1-0.20211019175813-34bb138d1bb2 h1:3gdWWczmrwAFKEiTl5lZD3WuAfzf/AU4L+lox5kReok=
 github.com/oasisprotocol/oasis-sdk/client-sdk/go v0.1.1-0.20211019175813-34bb138d1bb2/go.mod h1:s2kHkjw4l6OwH0afIiF7CWfgNpy6OHagvnukoACYCdI=
+github.com/oasisprotocol/oasis-sdk/client-sdk/go v0.1.1-0.20211029064010-e50613fe7c04 h1:VuxbVClbtssabSqKzAapcYMXG7iAcBveIhZtmjb/6Mg=
+github.com/oasisprotocol/oasis-sdk/client-sdk/go v0.1.1-0.20211029064010-e50613fe7c04/go.mod h1:qGJWGsBHazPGWeDkTuVz6tQaIQlWVsCNHgf+QyviY0g=
 github.com/oklog/oklog v0.3.2 h1:wVfs8F+in6nTBMkA7CbRw+zZMIB7nNM825cM1wuzoTk=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0 h1:Ru7dDtJNOyC66gQ5dQmaCa0qIsAUFY3sFpK1Xk8igrw=
