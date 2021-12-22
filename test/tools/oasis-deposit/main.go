@@ -28,8 +28,8 @@ import (
 
 const highGasAmount = 1000000
 
-// Default address is derived from the following ETH mnemonic: "tray ripple elevator ramp insect butter top mouse old cinnamon panther chief"
-// Correcponging ETH address: 0x90adE3B7065fa715c7a150313877dF1d33e777D5
+// Dave ETH mnemonic: "tray ripple elevator ramp insect butter top mouse old cinnamon panther chief"
+// Corresponding ETH address: 0x90adE3B7065fa715c7a150313877dF1d33e777D5
 const defaultToAddr = "oasis1qpupfu7e2n6pkezeaw0yhj8mcem8anj64ytrayne"
 
 func sigspecForSigner(signer signature.Signer) types.SignatureAddressSpec {
