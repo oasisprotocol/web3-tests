@@ -107,6 +107,13 @@ deposit() {
     ${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock "${OASIS_NODE_GRPC_ADDR}" -amount $amount
 }
 
+# Helper function that generates a runtime deposit transaction with custom to.
+deposit_to() {
+    local amount=$1
+    local to=$2
+    ${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock "${OASIS_NODE_GRPC_ADDR}" -amount $amount -to $to
+}
+
 # Helper function that generates a transfer transaction.
 gen_transfer() {
     local tx=$1
@@ -133,33 +140,33 @@ run_tests() {
         --reporter spec \
         --require ts-node/register \
         --grep 'E2E' \
-        --inverse \
         --timeout 5000 \
         --exit
     popd
 }
 
-printf "${GRN}### Starting the test network...${OFF}\n"
-start_network
+#printf "${GRN}### Starting the test network...${OFF}\n"
+#start_network
 
-printf "${GRN}### Waiting for the validator to register...${OFF}\n"
-${OASIS_NODE} debug control wait-nodes \
-    --address ${OASIS_NODE_GRPC_ADDR} \
-    --nodes 1 \
-    --wait
+#printf "${GRN}### Waiting for the validator to register...${OFF}\n"
+#${OASIS_NODE} debug control wait-nodes \
+#    --address ${OASIS_NODE_GRPC_ADDR} \
+#    --nodes 1 \
+#    --wait
 
-wait_for_nodes
+#wait_for_nodes
 
 # wait_for_nodes doesn't seem to do anything :/
-sleep 5
+#sleep 5
 
 printf "${GRN}### Starting oasis-evm-web3-gateway...${OFF}\n"
 
-start_web3
+#start_web3
 
 printf "${GRN}### Depositing tokens to runtime...${OFF}\n"
 
 deposit 1000000000000
+deposit_to 1000000000000 oasis1qzj8353xyr3pres6z33a9qvrnwcwf9r9uygcafhu
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
