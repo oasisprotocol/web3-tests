@@ -4,9 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
+	"github.com/miguelmota/go-ethereum-hdwallet"
 	"google.golang.org/grpc"
 
 	"github.com/oasisprotocol/oasis-core/go/common"
@@ -31,6 +33,9 @@ const highGasAmount = 1000000
 // Dave ETH mnemonic: "tray ripple elevator ramp insect butter top mouse old cinnamon panther chief"
 // Corresponding ETH address: 0x90adE3B7065fa715c7a150313877dF1d33e777D5
 const defaultToAddr = "oasis1qpupfu7e2n6pkezeaw0yhj8mcem8anj64ytrayne"
+
+// Number of keys to derive from the mnemonic, if provided.
+const numMnemonicDerivations = 10
 
 func sigspecForSigner(signer signature.Signer) types.SignatureAddressSpec {
 	switch pk := signer.Public().(type) {
@@ -111,6 +116,7 @@ func main() {
 	sock := flag.String("sock", "", "oasis-net-runner UNIX socket address")
 	rtid := flag.String("rtid", "8000000000000000000000000000000000000000000000000000000000000000", "Runtime ID")
 	to := flag.String("to", defaultToAddr, "deposit receiver")
+	toMnemonic := flag.String("tomnemonic", "", "first ten deposit receivers generated from mnemonic")
 	flag.Parse()
 
 	if (*amount == 0) || (*sock == "") {
@@ -137,17 +143,39 @@ func main() {
 	ctx, cancelFn := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancelFn()
 
-	var addr types.Address
-	if err = addr.UnmarshalText([]byte(*to)); err != nil {
-		fmt.Println("unmarshal addr err:", err)
-		os.Exit(1)
+	toAddresses := []string{*to}
+	if *toMnemonic != "" {
+		wallet, err := hdwallet.NewFromMnemonic(*toMnemonic)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		toAddresses = []string{}
+		for i := uint32(0); i < numMnemonicDerivations; i++ {
+			path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%d", i))
+			account, err := wallet.Derive(path, false)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			addr := types.NewAddressRaw(types.AddressV0Secp256k1EthContext, account.Address[:])
+			toAddresses = append(toAddresses, addr.String())
+		}
 	}
-	ba := types.NewBaseUnits(*quantity.NewFromUint64(*amount), types.NativeDenomination)
-	txb := consAcc.Deposit(&addr, ba).SetFeeConsensusMessages(1)
-	_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
-	if err != nil {
-		fmt.Printf("can't deposit: %s\n", err)
-		os.Exit(1)
+	for _, a := range toAddresses {
+		var addr types.Address
+		if err = addr.UnmarshalText([]byte(a)); err != nil {
+			fmt.Println("unmarshal addr err:", err)
+			os.Exit(1)
+		}
+		ba := types.NewBaseUnits(*quantity.NewFromUint64(*amount), types.NativeDenomination)
+		txb := consAcc.Deposit(&addr, ba).SetFeeConsensusMessages(1)
+		_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
+		if err != nil {
+			fmt.Printf("can't deposit: %s\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Deposited to %s\n", a)
 	}
 
 	fmt.Printf("Done.\n")
