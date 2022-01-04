@@ -23,7 +23,7 @@ GRN=$'\e[32;1m'
 OFF=$'\e[0m'
 
 # Destination address for test transfers.
-DST="oasis1qpkant39yhx59sagnzpc8v0sg8aerwa3jyqde3ge"
+TOMNEMONIC="tray ripple elevator ramp insect butter top mouse old cinnamon panther chief"
 
 # Kill all dangling processes on exit.
 cleanup() {
@@ -108,10 +108,10 @@ deposit() {
 }
 
 # Helper function that generates a runtime deposit transaction with custom to.
-deposit_to() {
+deposit_tomnemonic() {
     local amount=$1
     local to=$2
-    ${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock "${OASIS_NODE_GRPC_ADDR}" -amount $amount -to $to
+    ${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock "${OASIS_NODE_GRPC_ADDR}" -amount $amount -tomnemonic $to
 }
 
 # Helper function that generates a transfer transaction.
@@ -133,7 +133,7 @@ gen_transfer() {
         --genesis.file "${TEST_BASE_DIR}/net-runner/network/genesis.json"
 }
 
-run_tests() {
+run_e2e_tests() {
     GANACHE=true
     pushd ${ROOT}/..
     npx nyc --no-clean --silent _mocha -- \
@@ -143,6 +143,10 @@ run_tests() {
         --timeout 5000 \
         --exit
     popd
+}
+
+run_mosaic_tests() {
+    ./e2e.mosaic.sh
 }
 
 #printf "${GRN}### Starting the test network...${OFF}\n"
@@ -166,10 +170,11 @@ printf "${GRN}### Starting oasis-evm-web3-gateway...${OFF}\n"
 printf "${GRN}### Depositing tokens to runtime...${OFF}\n"
 
 deposit 1000000000000
-deposit_to 1000000000000 oasis1qzj8353xyr3pres6z33a9qvrnwcwf9r9uygcafhu
+deposit_tomnemonic 1000000000000 "$TOMNEMONIC"
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
-run_tests
+run_e2e_tests
+run_mosaic_tests
 
 printf "${GRN}### Tests finished.${OFF}\n"

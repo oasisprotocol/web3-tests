@@ -19,7 +19,7 @@ const { AccountProvider } = require('../test_lib/utils.js');
 const web3 = require('../test_lib/web3.js');
 const Utils = require('../test_lib/utils.js');
 const AxiomUtils = require('./utils.js');
-const ProxyTruffleArtifact = require('../../artifacts/Proxy.json');
+const ProxyTruffleArtifact = require('../../artifacts/contracts/proxies/Proxy.sol/Proxy.json');
 
 
 const SpyConsensus = artifacts.require('SpyConsensus');

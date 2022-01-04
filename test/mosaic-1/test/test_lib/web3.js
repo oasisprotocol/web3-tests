@@ -14,5 +14,5 @@
 
 'use strict';
 
-const env = require("@nomiclabs/buidler")
+const env = require("hardhat")
 module.exports = env.web3

@@ -28,9 +28,9 @@ echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 # TODO: Replace ganache_cli below with oasis toolset once it is ready.
 
 # Launch ganache
-./tools/run_ganache_cli.sh </dev/null 1>/dev/null 2>&1 &
-sleep 10
+#./tools/run_ganache_cli.sh </dev/null 1>/dev/null 2>&1 &
+# sleep 10
 
 # Compile and test
-npx buidler compile
-npm test
+npx hardhat compile
+npm test --network emerald_local
