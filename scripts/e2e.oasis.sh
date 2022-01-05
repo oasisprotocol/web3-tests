@@ -95,7 +95,8 @@ run_mosaic_tests() {
     npm i
 
     # Compile and test
-    npx hardhat test --network emerald_local
+    npx hardhat compile --show-stack-traces
+    #npx hardhat test --network emerald_local --show-stack-traces
     popd
 }
 

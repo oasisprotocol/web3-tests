@@ -37,7 +37,7 @@ jobs:
         steps:
             - uses: actions/checkout@v2
               with:
-                  repository: 'starfishlabs/oasis-evm-web3-gateway'
+                  repository: 'oasisprotocol/oasis-evm-web3-gateway'
                   ref: 'main'
 
             - uses: actions/setup-go@v2
@@ -51,7 +51,15 @@ jobs:
                   name: oasis-evm-web3-gateway
                   path: |
                       oasis-evm-web3-gateway
-                      conf/tests.yaml
+                      conf/tests.yml
+
+            - uses: actions/upload-artifact@v2
+              with:
+                  name: oasis-evm-web3-gateway-tools
+                  path: |
+                      tests/tools/spinup-oasis-stack.sh
+                      tests/tools/staking_genesis.json
+
     build-oasis-deposit:
         runs-on: ubuntu-latest
         steps:
@@ -85,9 +93,13 @@ jobs:
             postgres:
                 image: postgres
                 env:
+                    POSTGRES_HOST: 127.0.0.1
+                    POSTGRES_PORT: 5432
                     POSTGRES_DB: postgres
                     POSTGRES_USER: postgres
                     POSTGRES_PASSWORD: postgres
+                ports:
+                    - 5432:5432
         env:
             OASIS_CORE_VERSION: 21.3.6
             OASIS_NODE: ${{ github.workspace }}/oasis_core/oasis-node
@@ -96,11 +108,12 @@ jobs:
             GATEWAY__CHAIN_ID: 42261
             OASIS_EMERALD_PARATIME: ${{ github.workspace }}/oasis_core/emerald-paratime
             OASIS_NODE_DATADIR: /tmp/eth-runtime-test
+            OASIS_EVM_WEB3_GATEWAY: ${{ github.workspace }}/scripts/oasis-evm-web3-gateway
             TEST: ${{ matrix.testCmd }}
         steps:
             - uses: actions/setup-node@v1
               with:
-                  node-version: 14
+                  node-version: 14.17.0
             - uses: actions/checkout@v2
 
             - run: npm ci
@@ -118,12 +131,6 @@ jobs:
                   wget "https://github.com/oasisprotocol/emerald-paratime/releases/download/v${OASIS_EMERALD_VERSION}/emerald-paratime" -O "${OASIS_EMERALD_PARATIME}"
                   chmod a+x "${OASIS_EMERALD_PARATIME}"
 
-            - name: Spinup oasis-node
-              run: |
-                  wget https://raw.githubusercontent.com/oasisprotocol/oasis-evm-web3-gateway/main/tests/tools/spinup-oasis-stack.sh -O scripts/spinup-oasis-stack.sh
-                  chmod a+x scripts/spinup-oasis-stack.sh
-                  scripts/spinup-oasis-stack.sh > /dev/null &
-
             - uses: actions/download-artifact@v2
               with:
                 name: oasis-evm-web3-gateway
@@ -132,11 +139,22 @@ jobs:
 
             - uses: actions/download-artifact@v2
               with:
+                  name: oasis-evm-web3-gateway-tools
+                  path: scripts
+            - run: chmod a+x scripts/spinup-oasis-stack.sh
+
+            - uses: actions/download-artifact@v2
+              with:
                 name: oasis-deposit
                 path: test/tools/oasis-deposit
             - run: chmod a+x test/tools/oasis-deposit/oasis-deposit
 
+            - name: Spinup oasis-node
+              run: |
+                  scripts/spinup-oasis-stack.sh > /dev/null &
+                  sleep 10
+
             - run: ${OASIS_EVM_WEB3_GATEWAY} --config scripts/conf/tests.yml &
 
-            - run: bash ./scripts/ci.sh
+            - run: bash ./scripts/e2e.oasis.sh
 
