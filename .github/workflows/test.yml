@@ -120,7 +120,7 @@ jobs:
 
             - name: Spinup oasis-node
               run: |
-                  wget https://raw.githubusercontent.com/oasisprotocol/oasis-evm-web3-gateway/main/tests/tools/spinup-oasis-stack.sh -O scripts
+                  wget https://raw.githubusercontent.com/oasisprotocol/oasis-evm-web3-gateway/main/tests/tools/spinup-oasis-stack.sh -O scripts/spinup-oasis-stack.sh
                   chmod a+x scripts/spinup-oasis-stack.sh
                   scripts/spinup-oasis-stack.sh > /dev/null &
 
