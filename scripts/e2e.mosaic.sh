@@ -32,5 +32,4 @@ echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 # sleep 10
 
 # Compile and test
-npx hardhat compile
-npm test --network emerald_local
+npx hardhat test --network emerald_local
