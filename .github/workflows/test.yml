@@ -15,23 +15,23 @@ jobs:
             - run: npm ci
 
             - run: bash ./scripts/ci.sh
-    unit:
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                node: [11, 12, 13, 14]
-        env:
-            TEST: "unit"
-        steps:
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: ${{ matrix.node }}
-
-            - uses: actions/checkout@v2
-
-            - run: npm ci
-
-            - run: bash ./scripts/ci.sh
+#    unit:
+#        runs-on: ubuntu-latest
+#        strategy:
+#            matrix:
+#                node: [11, 12, 13, 14]
+#        env:
+#            TEST: "unit"
+#        steps:
+#            - uses: actions/setup-node@v1
+#              with:
+#                  node-version: ${{ matrix.node }}
+#
+#            - uses: actions/checkout@v2
+#
+#            - run: npm ci
+#
+#            - run: bash ./scripts/ci.sh
     build-web3:
         runs-on: ubuntu-latest
         steps:
