@@ -46,11 +46,15 @@ describe('contract.deploy [ @E2E ]', function() {
         })
 
         it('returns an instance', async function(){
-            var instance = await basic
-                .deploy()
-                .send({from: accounts[0]});
+            console.log("matevz1");
+            var instance = await basic.deploy();
+            console.log("matevz2");
+            instance = instance.send({from: accounts[0]});
+            console.log("matevz3");
+            console.log("intance.options" + instance.options);
 
             assert(web3.utils.isAddress(instance.options.address));
+            console.log("matevz4");
         });
 
         // Clients reject this kind of OOG is early because
@@ -63,7 +67,7 @@ describe('contract.deploy [ @E2E ]', function() {
 
                 assert.fail();
             } catch(err){
-                assert(err.message.includes('gas'))
+                assert(err.message.includes('gas'));
                 assert(err.receipt === undefined);
             }
         });

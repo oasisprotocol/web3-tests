@@ -44,42 +44,6 @@ NUM_NODES=1
 # Current nonce for transactions (incremented after every submit_tx).
 NONCE=0
 
-# Helper function for running the test network.
-start_network() {
-    FIXTURE_FILE="${TEST_BASE_DIR}/fixture.json"
-
-    rm -rf ${TEST_BASE_DIR}
-    mkdir ${TEST_BASE_DIR}
-    ${OASIS_NET_RUNNER} \
-        dump-fixture \
-        --fixture.default.node.binary ${OASIS_NODE} \
-        --fixture.default.deterministic_entities \
-        --fixture.default.fund_entities \
-        --fixture.default.num_entities 2 \
-        --fixture.default.keymanager.binary '' \
-        --fixture.default.runtime.binary=${OASIS_EMERALD_PARATIME} \
-        --fixture.default.halt_epoch 100000 \
-        --fixture.default.staking_genesis ${ROOT}/../test/tools/staking_genesis.json > "$FIXTURE_FILE"
-
-    # Allow expensive queries.
-    jq '.clients[0].runtime_config."1".allow_expensive_queries = true' "$FIXTURE_FILE" > "$FIXTURE_FILE.tmp"
-    # TODO: also increase batch size.
-    mv "$FIXTURE_FILE.tmp" "$FIXTURE_FILE"
-
-    "${OASIS_NET_RUNNER}" \
-        --fixture.file "$FIXTURE_FILE" \
-        --basedir ${TEST_BASE_DIR} \
-        --basedir.no_temp_dir &
-}
-
-# Helper function for running the EVM web3 gateway.
-start_web3() {
-    pushd $(dirname ${OASIS_EVM_WEB3_GATEWAY})
-    ${OASIS_EVM_WEB3_GATEWAY} \
-        --config conf/server.yml &
-    popd
-}
-
 # Helper function that waits for all nodes to register.
 wait_for_nodes() {
     printf "${GRN}### Waiting for all nodes to register...${OFF}\n"
@@ -111,26 +75,7 @@ deposit() {
 deposit_tomnemonic() {
     local amount=$1
     local to=$2
-    ${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock "${OASIS_NODE_GRPC_ADDR}" -amount $amount -tomnemonic $to
-}
-
-# Helper function that generates a transfer transaction.
-gen_transfer() {
-    local tx=$1
-    local amount=$2
-    local dst=$3
-    ${OASIS_NODE} stake account gen_transfer \
-        --assume_yes \
-        --stake.amount $amount \
-        --stake.transfer.destination "$dst" \
-        --transaction.file "$tx" \
-        --transaction.nonce ${NONCE} \
-        --transaction.fee.amount 0 \
-        --transaction.fee.gas 10000 \
-        --debug.dont_blame_oasis \
-        --debug.test_entity \
-        --debug.allow_test_keys \
-        --genesis.file "${TEST_BASE_DIR}/net-runner/network/genesis.json"
+    ${ROOT}/../test/tools/oasis-deposit/oasis-deposit -sock "${OASIS_NODE_GRPC_ADDR}" -amount $amount -tomnemonic "$to"
 }
 
 run_e2e_tests() {
@@ -146,35 +91,19 @@ run_e2e_tests() {
 }
 
 run_mosaic_tests() {
-    ./e2e.mosaic.sh
+    pushd ${ROOT}/../test/mosaic-1
+    npm i
+
+    # Compile and test
+    npx hardhat test --network emerald_local
+    popd
 }
 
-#printf "${GRN}### Starting the test network...${OFF}\n"
-#start_network
-
-#printf "${GRN}### Waiting for the validator to register...${OFF}\n"
-#${OASIS_NODE} debug control wait-nodes \
-#    --address ${OASIS_NODE_GRPC_ADDR} \
-#    --nodes 1 \
-#    --wait
-
-#wait_for_nodes
-
-# wait_for_nodes doesn't seem to do anything :/
-#sleep 5
-
-printf "${GRN}### Starting oasis-evm-web3-gateway...${OFF}\n"
-
-#start_web3
-
-printf "${GRN}### Depositing tokens to runtime...${OFF}\n"
-
-deposit 1000000000000
 deposit_tomnemonic 1000000000000 "$TOMNEMONIC"
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 
-run_e2e_tests
+#run_e2e_tests
 run_mosaic_tests
 
 printf "${GRN}### Tests finished.${OFF}\n"

@@ -51,7 +51,7 @@ jobs:
                   name: oasis-evm-web3-gateway
                   path: |
                       oasis-evm-web3-gateway
-                      conf/server.yaml
+                      conf/tests.yaml
     build-oasis-deposit:
         runs-on: ubuntu-latest
         steps:
@@ -69,7 +69,7 @@ jobs:
               with:
                   name: oasis-deposit
                   path: test/tools/oasis-deposit/oasis-deposit
-    unit-oasis:
+    e2e-oasis:
         runs-on: ubuntu-latest
         needs:
             - build-web3
@@ -89,11 +89,13 @@ jobs:
                     POSTGRES_USER: postgres
                     POSTGRES_PASSWORD: postgres
         env:
-            OASIS_CORE_VERSION: 21.3.1
-            OASIS_NODE: ${{ github.workspace }}/scripts/oasis-node
-            OASIS_NET_RUNNER: ${{ github.workspace }}/scripts/oasis-net-runner
-            OASIS_EMERALD_PARATIME: ${{ github.workspace }}/scripts/emerald-paratime
-            OASIS_EVM_WEB3_GATEWAY: ${{ github.workspace }}/scripts/oasis-evm-web3-gateway
+            OASIS_CORE_VERSION: 21.3.6
+            OASIS_NODE: ${{ github.workspace }}/oasis_core/oasis-node
+            OASIS_NET_RUNNER: ${{ github.workspace }}/oasis_core/oasis-net-runner
+            OASIS_EMERALD_VERSION: 6.0.0
+            GATEWAY__CHAIN_ID: 42261
+            OASIS_EMERALD_PARATIME: ${{ github.workspace }}/oasis_core/emerald-paratime
+            OASIS_NODE_DATADIR: /tmp/eth-runtime-test
             TEST: ${{ matrix.testCmd }}
         steps:
             - uses: actions/setup-node@v1
@@ -103,12 +105,24 @@ jobs:
 
             - run: npm ci
 
-            - run: wget "https://github.com/oasisprotocol/oasis-core/releases/download/v${OASIS_CORE_VERSION}/oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz"
-            - run: tar xfvz oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz
-            - run: mv oasis_core_${OASIS_CORE_VERSION}_linux_amd64/oasis-node ${OASIS_NODE}
-            - run: mv oasis_core_${OASIS_CORE_VERSION}_linux_amd64/oasis-net-runner ${OASIS_NET_RUNNER}
+            - name: Install prerequisites
+              run: |
+                  sudo apt update && sudo apt install bubblewrap -y
+                  wget "https://github.com/oasisprotocol/oasis-core/releases/download/v${OASIS_CORE_VERSION}/oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz"
+                  tar xfvz "oasis_core_${OASIS_CORE_VERSION}_linux_amd64.tar.gz"
+                  mkdir -p "$(dirname ${OASIS_NODE})"
+                  mv "oasis_core_${OASIS_CORE_VERSION}_linux_amd64/oasis-node" "${OASIS_NODE}"
+                  mkdir -p "$(dirname ${OASIS_NET_RUNNER})"
+                  mv "oasis_core_${OASIS_CORE_VERSION}_linux_amd64/oasis-net-runner" "${OASIS_NET_RUNNER}"
+                  mkdir -p "$(dirname ${OASIS_EMERALD_PARATIME})"
+                  wget "https://github.com/oasisprotocol/emerald-paratime/releases/download/v${OASIS_EMERALD_VERSION}/emerald-paratime" -O "${OASIS_EMERALD_PARATIME}"
+                  chmod a+x "${OASIS_EMERALD_PARATIME}"
 
-            - run: wget "https://github.com/oasisprotocol/emerald-paratime/releases/download/v0.1.0-alpha1/emerald-paratime" -O ${OASIS_EMERALD_PARATIME}
+            - name: Spinup oasis-node
+              run: |
+                  wget https://raw.githubusercontent.com/oasisprotocol/oasis-evm-web3-gateway/main/tests/tools/spinup-oasis-stack.sh -O scripts
+                  chmod a+x scripts/spinup-oasis-stack.sh
+                  scripts/spinup-oasis-stack.sh > /dev/null &
 
             - uses: actions/download-artifact@v2
               with:
@@ -118,36 +132,11 @@ jobs:
 
             - uses: actions/download-artifact@v2
               with:
-                  name: oasis-deposit
-                  path: test/tools/oasis-deposit
+                name: oasis-deposit
+                path: test/tools/oasis-deposit
             - run: chmod a+x test/tools/oasis-deposit/oasis-deposit
 
-            - run: bash ./scripts/ci.sh
-
-    e2e:
-        runs-on: ubuntu-latest
-        strategy:
-            fail-fast: false
-            matrix:
-                testCmd:
-                    [
-                        'unit_and_e2e_clients',
-# Disabled until https://github.com/oasisprotocol/web3-tests/issues/2 is fixed.
-#                        'e2e_browsers',
-#                        'e2e_ganache',
-#                        'e2e_mosaic',
-                        'e2e_gnosis_dex',
-                    ]
-        env:
-            TEST: ${{ matrix.testCmd }}
-            INFURA_HTTP: ${{ secrets.INFURA_HTTP }}
-        steps:
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: 14
-            - uses: actions/checkout@v2
-
-            - run: npm ci
+            - run: ${OASIS_EVM_WEB3_GATEWAY} --config scripts/conf/tests.yml &
 
             - run: bash ./scripts/ci.sh
 

@@ -6,16 +6,22 @@ var web3 = new Web3();
 
 var tests = [
     {
-        address: '0xEB014f8c8B418Db6b45774c326A0E64C78914dC0',
-        privateKey: '0xbe6383dad004f233317e46ddb46ad31b16064d14447a95cc1d8c8d4bc61c3728',
+        // Dave.
+        address: '0x90adE3B7065fa715c7a150313877dF1d33e777D5',
+        // Mnemonics: tray ripple elevator ramp insect butter top mouse old cinnamon panther chief
+        privateKey: '0x1f1455c61485737accdd610f5ea9ac1e4272c29b4c6c3189a349acc5bb598e7d',
         data: 'Some data',
         // signature done with personal_sign
+        // TODO
         signature: '0xa8037a6116c176a25e6fc224947fde9e79a2deaa0dd8b67b366fbdfdbffc01f953e41351267b20d4a89ebfe9c8f03c04de9b345add4a52f15bd026b63c8fb1501b'
     }, {
-        address: '0xEB014f8c8B418Db6b45774c326A0E64C78914dC0',
-        privateKey: '0xbe6383dad004f233317e46ddb46ad31b16064d14447a95cc1d8c8d4bc61c3728',
+        // Eugene.
+        address: '0x33a8Ba274FEdFeed6A08d09eC524a1E1A6Da8262',
+        // Mnemonics: motor diamond leopard uphold govern wave rely erase suspect advance chuckle burden indicate bicycle seek just canvas modify
+        privateKey: '0x5ee8f9e65907471b95d9faf6653fb25d1ae316228cd9405631f0532564038d24',
         data: 'Some data!%$$%&@*',
         // signature done with personal_sign
+        // TODO
         signature: '0x05252412b097c5d080c994d1ea12abcee6f1cae23feb225517a0b691a66e12866b3f54292f9cfef98f390670b4d010fc4af7fcd46e41d72870602c117b14921c1c'
     }
 ];
