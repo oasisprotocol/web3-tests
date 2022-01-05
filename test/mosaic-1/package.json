@@ -3,29 +3,7 @@
   "version": "0.1.0",
   "description": "Mosaic",
   "main": "index.js",
-  "dependencies": {
-    "web3": "1.6.1-rc.0",
-    "web3-bzz": "1.6.1-rc.0",
-    "web3-core-helpers": "1.6.1-rc.0",
-    "web3-core-method": "1.6.1-rc.0",
-    "web3-core-promievent": "1.6.1-rc.0",
-    "web3-core-requestmanager": "1.6.1-rc.0",
-    "web3-core-subscriptions": "1.6.1-rc.0",
-    "web3-core": "1.6.1-rc.0",
-    "web3-eth-abi": "1.6.1-rc.0",
-    "web3-eth-accounts": "1.6.1-rc.0",
-    "web3-eth-contract": "1.6.1-rc.0",
-    "web3-eth-ens": "1.6.1-rc.0",
-    "web3-eth-iban": "1.6.1-rc.0",
-    "web3-eth-personal": "1.6.1-rc.0",
-    "web3-eth": "1.6.1-rc.0",
-    "web3-net": "1.6.1-rc.0",
-    "web3-providers-http": "1.6.1-rc.0",
-    "web3-providers-ipc": "1.6.1-rc.0",
-    "web3-providers-ws": "1.6.1-rc.0",
-    "web3-shh": "1.6.1-rc.0",
-    "web3-utils": "1.6.1-rc.0"
-  },
+  "dependencies": {},
   "scripts": {
     "update": "git submodule update --init --recursive && yarn",
     "compile": "hardhat compile",
@@ -42,7 +20,7 @@
     "clean": "rm -r contract_build/contracts.json interacts/* build/* 2> /dev/null || true",
     "build:package": "node tools/build_package.js",
     "generate:interacts": "ts-generator ts-generator.json && node tools/contract_interact_generator.js",
-    "postinstall": "npm run clean && npm run compile && npm run build:package && npm run generate:interacts"
+    "postinstall": "npm run clean && npm run compile"
   },
   "repository": {
     "type": "git",
@@ -74,6 +52,5 @@
     "ts-generator": "0.0.8",
     "typechain": "0.3.14",
     "typescript": "3.7.2"
-  },
-  "dependencies": {}
+  }
 }
