@@ -36,6 +36,12 @@ module.exports = {
       evmVersion: 'istanbul'
     },
   },
+  paths: {
+    sources: "./contracts/**/*",
+    tests: "./test/**/*",
+    cache: "./cache",
+    artifacts: "./artifacts"
+  },
   mocha: {
     timeout: 50000
   }

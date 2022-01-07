@@ -105,7 +105,7 @@ jobs:
             OASIS_NODE: ${{ github.workspace }}/oasis_core/oasis-node
             OASIS_NET_RUNNER: ${{ github.workspace }}/oasis_core/oasis-net-runner
             OASIS_EMERALD_VERSION: 6.0.0
-            GATEWAY__CHAIN_ID: 42261
+            GATEWAY__CHAIN_ID: 42262
             OASIS_EMERALD_PARATIME: ${{ github.workspace }}/oasis_core/emerald-paratime
             OASIS_NODE_DATADIR: /tmp/eth-runtime-test
             OASIS_EVM_WEB3_GATEWAY: ${{ github.workspace }}/scripts/oasis-evm-web3-gateway
