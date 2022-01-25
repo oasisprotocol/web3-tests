@@ -99,7 +99,7 @@ run_mosaic_tests() {
     popd
 }
 
-deposit_tomnemonic 1000000000000 "$TOMNEMONIC"
+deposit_tomnemonic 100_000_000_000_000_000_000 "$TOMNEMONIC"
 
 printf "${GRN}### Running web3 tests implementation...${OFF}\n"
 

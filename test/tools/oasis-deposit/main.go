@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/miguelmota/go-ethereum-hdwallet"
@@ -112,14 +114,15 @@ func SignAndSubmitTx(ctx context.Context, rtc client.RuntimeClient, signer signa
 }
 
 func main() {
-	amount := flag.Uint64("amount", 0, "amount to deposit")
+	amount := flag.String("amount", "1_000_000_000_000_000_000", "amount to deposit in ParaTime base units")
 	sock := flag.String("sock", "", "oasis-net-runner UNIX socket address")
 	rtid := flag.String("rtid", "8000000000000000000000000000000000000000000000000000000000000000", "Runtime ID")
 	to := flag.String("to", defaultToAddr, "deposit receiver")
 	toMnemonic := flag.String("tomnemonic", "", "first ten deposit receivers generated from mnemonic")
 	flag.Parse()
 
-	if (*amount == 0) || (*sock == "") {
+	*amount = strings.ReplaceAll(*amount, "_", "")
+	if (*amount == "") || (*sock == "") {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -157,7 +160,7 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-
+			fmt.Println("generated address", account.Address)
 			addr := types.NewAddressRaw(types.AddressV0Secp256k1EthContext, account.Address[:])
 			toAddresses = append(toAddresses, addr.String())
 		}
@@ -168,14 +171,24 @@ func main() {
 			fmt.Println("unmarshal addr err:", err)
 			os.Exit(1)
 		}
-		ba := types.NewBaseUnits(*quantity.NewFromUint64(*amount), types.NativeDenomination)
+		quantity := *quantity.NewQuantity()
+		amountBigInt, succ := new(big.Int).SetString(*amount, 0)
+		if succ == false {
+			fmt.Printf("can't parse amount %s, obtained value %s\n", *amount, amountBigInt.String())
+			os.Exit(1)
+		}
+		if err = quantity.FromBigInt(amountBigInt); err != nil {
+			fmt.Printf("can't parse quantity: %s\n", err)
+			os.Exit(1)
+		}
+		ba := types.NewBaseUnits(quantity, types.NativeDenomination)
 		txb := consAcc.Deposit(&addr, ba).SetFeeConsensusMessages(1)
 		_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
 		if err != nil {
 			fmt.Printf("can't deposit: %s\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Deposited to %s\n", a)
+		fmt.Printf("Deposited %s to %s\n", ba.String(), a)
 	}
 
 	fmt.Printf("Done.\n")
