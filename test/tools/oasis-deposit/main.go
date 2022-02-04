@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
 	"fmt"
-	"log"
 	"math/big"
 	"os"
 	"strings"
@@ -129,14 +129,12 @@ func main() {
 
 	var runtimeID common.Namespace
 	if err := runtimeID.UnmarshalHex(*rtid); err != nil {
-		fmt.Printf("can't decode runtime ID: %s\n", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("can't decode runtime ID: %s", err))
 	}
 
 	conn, err := cmnGrpc.Dial(*sock, grpc.WithInsecure())
 	if err != nil {
-		fmt.Printf("can't connect to socket: %s\n", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("can't connect to socket: %s", err))
 	}
 	defer conn.Close()
 
@@ -150,7 +148,7 @@ func main() {
 	if *toMnemonic != "" {
 		wallet, err := hdwallet.NewFromMnemonic(*toMnemonic)
 		if err != nil {
-			log.Fatal(err)
+			panic(fmt.Sprintf("failed to create hdwallet: %s", err))
 		}
 
 		toAddresses = []string{}
@@ -158,7 +156,7 @@ func main() {
 			path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%d", i))
 			account, err := wallet.Derive(path, false)
 			if err != nil {
-				log.Fatal(err)
+				panic(fmt.Sprintf("failed to derive key from mnemonic: %s", err))
 			}
 			fmt.Println("generated address", account.Address)
 			addr := types.NewAddressRaw(types.AddressV0Secp256k1EthContext, account.Address[:])
@@ -167,29 +165,32 @@ func main() {
 	}
 	for _, a := range toAddresses {
 		var addr types.Address
-		if err = addr.UnmarshalText([]byte(a)); err != nil {
-			fmt.Println("unmarshal addr err:", err)
-			os.Exit(1)
+		if !strings.HasPrefix(a, "oasis1") {
+			// Ethereum address provided.
+			a = strings.TrimPrefix(a, "0x")
+			aBytes, err := hex.DecodeString(a)
+			if err != nil {
+				panic(fmt.Sprintf("unmarshal hex err: %s", err))
+			}
+			addr = types.NewAddressRaw(types.AddressV0Secp256k1EthContext, aBytes)
+		} else if err = addr.UnmarshalText([]byte(a)); err != nil {
+			panic(fmt.Sprintf("unmarshal addr err: %s", err))
 		}
+
 		quantity := *quantity.NewQuantity()
 		amountBigInt, succ := new(big.Int).SetString(*amount, 0)
 		if succ == false {
-			fmt.Printf("can't parse amount %s, obtained value %s\n", *amount, amountBigInt.String())
-			os.Exit(1)
+			panic(fmt.Sprintf("can't parse amount %s, obtained value %s", *amount, amountBigInt.String()))
 		}
 		if err = quantity.FromBigInt(amountBigInt); err != nil {
-			fmt.Printf("can't parse quantity: %s\n", err)
-			os.Exit(1)
+			panic(fmt.Sprintf("can't parse quantity: %s", err))
 		}
 		ba := types.NewBaseUnits(quantity, types.NativeDenomination)
 		txb := consAcc.Deposit(&addr, ba).SetFeeConsensusMessages(1)
 		_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
 		if err != nil {
-			fmt.Printf("can't deposit: %s\n", err)
-			os.Exit(1)
+			panic(fmt.Sprintf("can't deposit: %s", err))
 		}
-		fmt.Printf("Deposited %s to %s\n", ba.String(), a)
+		fmt.Printf("Deposited %s ROSE to %s\n", ba.Amount.String(), a)
 	}
-
-	fmt.Printf("Done.\n")
 }
