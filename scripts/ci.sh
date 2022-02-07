@@ -15,6 +15,7 @@ elif [ "$TEST" = "lint" ]; then
 
   npm run dtslint
   npm run depcheck
+  npm run lint
 
 elif [ "$TEST" = "unit_and_e2e_clients" ]; then
 
@@ -42,5 +43,9 @@ elif [ "$TEST" = "e2e_ganache" ]; then
 elif [ "$TEST" = "e2e_gnosis_dex" ]; then
 
   npm run test:e2e:gnosis:dex
+
+elif [ "$TEST" = "e2e_oasis" ]; then
+
+  npm run test:e2e:oasis
 
 fi
