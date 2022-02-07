@@ -30,14 +30,17 @@ import (
 	"github.com/oasisprotocol/oasis-sdk/client-sdk/go/types"
 )
 
-const highGasAmount = 1000000
+const (
+	highGasAmount = 1000000
 
-// Dave ETH mnemonic: "tray ripple elevator ramp insect butter top mouse old cinnamon panther chief"
-// Corresponding ETH address: 0x90adE3B7065fa715c7a150313877dF1d33e777D5
-const defaultToAddr = "oasis1qpupfu7e2n6pkezeaw0yhj8mcem8anj64ytrayne"
+	// Dave ETH mnemonic: "tray ripple elevator ramp insect butter top mouse old cinnamon panther chief"
+	// Corresponding oasis1 address: oasis1qpupfu7e2n6pkezeaw0yhj8mcem8anj64ytrayne
+	defaultToAddr  = "0x90adE3B7065fa715c7a150313877dF1d33e777D5"
+	derivationPath = "m/44'/60'/0'/0/%d"
+)
 
 // Number of keys to derive from the mnemonic, if provided.
-const numMnemonicDerivations = 10
+var numMnemonicDerivations = 10
 
 func sigspecForSigner(signer signature.Signer) types.SignatureAddressSpec {
 	switch pk := signer.Public().(type) {
@@ -113,12 +116,38 @@ func SignAndSubmitTx(ctx context.Context, rtc client.RuntimeClient, signer signa
 	return result, nil
 }
 
+// printSummary prints deposit summary similar to ganache-cli.
+func printSummary(addresses []string, keys []string, baseAmount types.BaseUnits, mnemonic string) {
+	fmt.Println("Available Accounts")
+	fmt.Println("==================")
+
+	amount := new(big.Int).Div(baseAmount.Amount.ToBigInt(), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+
+	for i, a := range addresses {
+		fmt.Printf("(%d) %s (%d ROSE)\n", i, a, amount)
+	}
+
+	if len(keys) != 0 {
+		fmt.Println("\nPrivate Keys")
+		fmt.Println("==================")
+
+		for i, k := range keys {
+			fmt.Printf("(%d) 0x%s\n", i, k)
+		}
+
+		fmt.Println("\nHD Wallet")
+		fmt.Println("==================")
+		fmt.Printf("Mnemonic:\t%s\n", mnemonic)
+		fmt.Printf("Base HD Patch:\t%s\n", derivationPath)
+	}
+}
+
 func main() {
-	amount := flag.String("amount", "1_000_000_000_000_000_000", "amount to deposit in ParaTime base units")
+	amount := flag.String("amount", "100_000_000_000_000_000_000", "amount to deposit in ParaTime base units")
 	sock := flag.String("sock", "", "oasis-net-runner UNIX socket address")
 	rtid := flag.String("rtid", "8000000000000000000000000000000000000000000000000000000000000000", "Runtime ID")
-	to := flag.String("to", defaultToAddr, "deposit receiver")
-	toMnemonic := flag.String("tomnemonic", "", "first ten deposit receivers generated from mnemonic")
+	to := flag.String("to", defaultToAddr, "deposit address in 0x or oasis1 format or mnemonic phrase")
+	flag.IntVar(&numMnemonicDerivations, "n", numMnemonicDerivations, "number of addresses to derive from mnemonic")
 	flag.Parse()
 
 	*amount = strings.ReplaceAll(*amount, "_", "")
@@ -126,6 +155,15 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
+	quantity := *quantity.NewQuantity()
+	amountBigInt, succ := new(big.Int).SetString(*amount, 0)
+	if succ == false {
+		panic(fmt.Sprintf("can't parse amount %s, obtained value %s", *amount, amountBigInt.String()))
+	}
+	if err := quantity.FromBigInt(amountBigInt); err != nil {
+		panic(fmt.Sprintf("can't parse quantity: %s", err))
+	}
+	baseAmount := types.NewBaseUnits(quantity, types.NativeDenomination)
 
 	var runtimeID common.Namespace
 	if err := runtimeID.UnmarshalHex(*rtid); err != nil {
@@ -145,22 +183,28 @@ func main() {
 	defer cancelFn()
 
 	toAddresses := []string{*to}
-	if *toMnemonic != "" {
-		wallet, err := hdwallet.NewFromMnemonic(*toMnemonic)
+	toPrivateKeys := []string{}
+	// Check, if mnemonic was provided instead of the address.
+	if strings.Contains(*to, " ") {
+		wallet, err := hdwallet.NewFromMnemonic(*to)
 		if err != nil {
 			panic(fmt.Sprintf("failed to create hdwallet: %s", err))
 		}
 
 		toAddresses = []string{}
-		for i := uint32(0); i < numMnemonicDerivations; i++ {
-			path := hdwallet.MustParseDerivationPath(fmt.Sprintf("m/44'/60'/0'/0/%d", i))
+		for i := 0; i < numMnemonicDerivations; i++ {
+			path := hdwallet.MustParseDerivationPath(fmt.Sprintf(derivationPath, i))
 			account, err := wallet.Derive(path, false)
 			if err != nil {
 				panic(fmt.Sprintf("failed to derive key from mnemonic: %s", err))
 			}
-			fmt.Println("generated address", account.Address)
-			addr := types.NewAddressRaw(types.AddressV0Secp256k1EthContext, account.Address[:])
-			toAddresses = append(toAddresses, addr.String())
+			toAddresses = append(toAddresses, account.Address.Hex())
+
+			privateKey, err := wallet.PrivateKeyHex(account)
+			if err != nil {
+				panic(fmt.Sprintf("failed to obtain private key for account %s: %s", account.Address, err))
+			}
+			toPrivateKeys = append(toPrivateKeys, privateKey)
 		}
 	}
 	for _, a := range toAddresses {
@@ -177,20 +221,12 @@ func main() {
 			panic(fmt.Sprintf("unmarshal addr err: %s", err))
 		}
 
-		quantity := *quantity.NewQuantity()
-		amountBigInt, succ := new(big.Int).SetString(*amount, 0)
-		if succ == false {
-			panic(fmt.Sprintf("can't parse amount %s, obtained value %s", *amount, amountBigInt.String()))
-		}
-		if err = quantity.FromBigInt(amountBigInt); err != nil {
-			panic(fmt.Sprintf("can't parse quantity: %s", err))
-		}
-		ba := types.NewBaseUnits(quantity, types.NativeDenomination)
-		txb := consAcc.Deposit(&addr, ba).SetFeeConsensusMessages(1)
+		txb := consAcc.Deposit(&addr, baseAmount).SetFeeConsensusMessages(1)
 		_, err = SignAndSubmitTx(ctx, rtc, testing.Alice.Signer, *txb.GetTransaction(), 0)
 		if err != nil {
 			panic(fmt.Sprintf("can't deposit: %s", err))
 		}
-		fmt.Printf("Deposited %s ROSE to %s\n", ba.Amount.String(), a)
 	}
+
+	printSummary(toAddresses, toPrivateKeys, baseAmount, *to)
 }
